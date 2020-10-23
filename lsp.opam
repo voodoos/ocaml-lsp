@@ -26,12 +26,17 @@ depends: [
   "ocaml-syntax-shims"
   "cppo"
   "uutf"
-  "ppx_expect" {with-test}
+  "csexp"
+  "menhir" {with-test}
+  "cinaps" {with-test}
+  "ppx_expect" {with-test & >= "v0.14.0"}
   "ocaml" {>= "4.06"}
   "dune" {>= "2.0"}
 ]
+dev-repo: "git+https://github.com/ocaml/ocaml-lsp.git"
 build: [
   ["dune" "subst"] {pinned}
+  ["ocaml" "unix.cma" "unvendor.ml"]
   [
     "dune"
     "build"
@@ -40,8 +45,6 @@ build: [
     "-j"
     jobs
     "@install"
-    "@runtest" {with-test}
     "@doc" {with-doc}
   ]
 ]
-dev-repo: "git+https://github.com/ocaml/ocaml-lsp.git"

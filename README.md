@@ -15,7 +15,6 @@ We recommend to install the server via a project such as
 To install the lsp server in a particular opam switch:
 
 ```
-$ opam pin add ocaml-lsp-server https://github.com/ocaml/ocaml-lsp.git
 $ opam install ocaml-lsp-server
 ```
 
@@ -24,13 +23,10 @@ you'd like to use it.
 
 ### Esy
 
-To add the lsp server to an esy project, add the following lines to your
-project's `package.json`:
+To add the lsp server to an esy project:
 
 ```
-  "devDependencies": {
-    "@opam/ocaml-lsp-server": "ocaml/ocaml-lsp:ocaml-lsp-server.opam"
-  }
+$ esy add @opam/ocaml-lsp-server
 ```
 
 ### Source
@@ -47,11 +43,12 @@ $ make build
 
 ## Usage
 
-Once `ocaml-lsp-server` is installed, the executable is called `ocamllsp`.
-For now, the server can only be used through the standard file descriptors `stdin` and `stdout`.
+Once `ocaml-lsp-server` is installed, the executable is called `ocamllsp`. For
+now, the server can only be used through the standard file descriptors `stdin`
+and `stdout`.
 
-For an example of usage of the server in a VSCode extension, see [here](https://github.com/ocamllabs/vscode-ocaml-platform/blob/master/src/Extension.ml).
-
+For an example of usage of the server in a VSCode extension, see
+[here](https://github.com/ocamllabs/vscode-ocaml-platform/blob/master/src/vscode_ocaml_platform.ml).
 
 ## Features
 
@@ -90,11 +87,11 @@ git clone --recursive git@github.com:ocaml/ocaml-lsp.git
 # if you already cloned, pull submodules
 git submodule update --init --recursive
 
-# create local switch (or use global one)
-opam switch create . ocaml-base-compiler.4.09.1
+# create local switch (or use global one) and install dependencies
+opam switch create . ocaml-base-compiler.4.11.1 --with-test
 
-# install dependencies
-opam install . --deps-only --with-test
+# don't forget to set your environment to use the local switch
+eval ($opam env)
 
 # build
 make build
@@ -111,10 +108,8 @@ To run tests execute:
 $ make test
 ```
 
-Note that tests require [Node.js][] and [Yarn][] installed.
-
-[Node.js]: https://nodejs.org/en/
-[Yarn]: https://yarnpkg.com/lang/en/
+Note that tests require [Node.js](https://nodejs.org/en/) and
+[Yarn][https://yarnpkg.com/lang/en/] installed.
 
 ## Relationship to Other Tools
 
@@ -125,8 +120,8 @@ and merlin independently.
 
 ## History
 
-The implementation of the lsp protocol itself was taken from [facebook's
-hack](https://github.com/facebook/hhvm/blob/master/hphp/hack/src/utils/lsp/lsp.mli)
+The implementation of the lsp protocol itself was taken from
+[facebook's hack](https://github.com/facebook/hhvm/blob/master/hphp/hack/src/utils/lsp/lsp.mli)
 
 Previously, this lsp server was a part of merlin, until it was realized that the
 lsp protocol covers a wider scope than merlin.
@@ -136,7 +131,7 @@ lsp protocol covers a wider scope than merlin.
 Note that the comparisons below make no claims of being objective and may be
 entirely out of date:
 
-* [reason-language-server](https://github.com/jaredly/reason-language-server)
+- [reason-language-server](https://github.com/jaredly/reason-language-server)
   This server supports
   [bucklescript](https://github.com/BuckleScript/bucklescript) &
   [reason](https://github.com/facebook/reason). However, this project does not
@@ -144,7 +139,7 @@ entirely out of date:
   "smart" functionality - especially in the face of sources that do not yet
   compile.
 
-* [ocaml-language-server](https://github.com/ocaml-lsp/ocaml-language-server)
+- [ocaml-language-server](https://github.com/ocaml-lsp/ocaml-language-server)
   This project is extremely similar in the functionality it provides because it
   also reuses merlin on the backend. The essential difference is that this
   project is written in typescript, while our server is in OCaml. We feel that

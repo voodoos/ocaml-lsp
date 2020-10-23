@@ -12,14 +12,10 @@ let not_supported () =
   @@ Error
        (make_error ~code:InternalError ~message:"Request not supported yet!" ())
 
-module Action = struct
-  let destruct = "destruct"
-end
-
 let initialize_info : InitializeResult.t =
   let codeActionProvider =
-    `CodeActionOptions
-      (CodeActionOptions.create ~codeActionKinds:[ Other Action.destruct ] ())
+    let codeActionKinds = [ CodeActionKind.Other Destruct_lsp.action_kind ] in
+    `CodeActionOptions (CodeActionOptions.create ~codeActionKinds ())
   in
   let textDocumentSync =
     `TextDocumentSyncOptions
@@ -40,7 +36,12 @@ let initialize_info : InitializeResult.t =
   let capabilities =
     let experimental =
       `Assoc
-        [ ("ocamllsp", `Assoc [ ("interfaceSpecificLangId", `Bool true) ]) ]
+        [ ( "ocamllsp"
+          , `Assoc
+              [ ("interfaceSpecificLangId", `Bool true)
+              ; Switch_impl_intf.capability
+              ] )
+        ]
     in
     ServerCapabilities.create ~textDocumentSync ~hoverProvider:(`Bool true)
       ~definitionProvider:(`Bool true) ~typeDefinitionProvider:(`Bool true)
@@ -152,46 +153,23 @@ let on_initialize rpc =
   Logger.register_consumer log_consumer;
   initialize_info
 
-let code_action_of_case_analysis uri (loc, newText) =
-  let edit : WorkspaceEdit.t =
-    let textedit : TextEdit.t = { range = Range.of_loc loc; newText } in
-    let uri = Uri.to_string uri in
-    WorkspaceEdit.create ~changes:[ (uri, [ textedit ]) ] ()
-  in
-  let title = String.capitalize_ascii Action.destruct in
-  CodeAction.create ~title ~kind:(CodeActionKind.Other Action.destruct) ~edit
-    ~isPreferred:false ()
-
 let code_action server (params : CodeActionParams.t) =
   let state : State.t = Server.state server in
   let store = state.store in
   match params.context.only with
-  | Some set when not (List.mem (CodeActionKind.Other Action.destruct) ~set) ->
+  | Some set
+    when not (List.mem (CodeActionKind.Other Destruct_lsp.action_kind) ~set) ->
     Fiber.return (Ok (None, state))
   | Some _
   | None ->
     let open Fiber.Result.O in
     let uri = Uri.t_of_yojson (`String params.textDocument.uri) in
     let* doc = Fiber.return (Document_store.get store uri) in
-    let command =
-      let start = Position.logical params.range.start in
-      let finish = Position.logical params.range.end_ in
-      Query_protocol.Case_analysis (start, finish)
+    let+ action = Destruct_lsp.code_action doc params in
+    let action =
+      Option.map action ~f:(fun destruct -> [ `CodeAction destruct ])
     in
-    let+ result =
-      let open Fiber.O in
-      let+ res = Document.dispatch doc command in
-      match res with
-      | Ok res ->
-        Ok (Some [ `CodeAction (code_action_of_case_analysis uri res) ])
-      | Error
-          ( Destruct.Wrong_parent _ | Query_commands.No_nodes
-          | Destruct.Not_allowed _ | Destruct.Useless_refine
-          | Destruct.Nothing_to_do ) ->
-        Ok (Some [])
-      | Error exn -> raise exn
-    in
-    (result, state)
+    (action, state)
 
 module Formatter = struct
   let jsonrpc_error (e : Fmt.error) =
@@ -250,20 +228,17 @@ let location_of_merlin_loc uri = function
   | `Not_found _
   | `Not_in_env _ ->
     None
-  | `Found (path, lex_position) -> (
-    match Position.of_lexical_position lex_position with
-    | None ->
-      log ~title:Logger.Title.Warning "merlin returned dummy position";
-      None
-    | Some position ->
-      let range = { Range.start = position; end_ = position } in
-      let uri =
-        match path with
-        | None -> uri
-        | Some path -> Uri.of_path path
-      in
-      let locs = [ { Location.uri = Uri.to_string uri; range } ] in
-      Some (`Location locs) )
+  | `Found (path, lex_position) ->
+    Position.of_lexical_position lex_position
+    |> Option.map ~f:(fun position ->
+           let range = { Range.start = position; end_ = position } in
+           let uri =
+             match path with
+             | None -> uri
+             | Some path -> Uri.of_path path
+           in
+           let locs = [ { Location.uri = Uri.to_string uri; range } ] in
+           `Location locs)
 
 let format_contents ~syntax ~markdown ~typ ~doc =
   (* TODO for vscode, we should just use the language id. But that will not work
@@ -511,6 +486,7 @@ let definition_query (state : State.t) uri position merlin_request =
   let result = location_of_merlin_loc uri result in
   Ok (result, state)
 
+(** handles requests for OCaml (syntax) documents *)
 let ocaml_on_request :
     type resp.
        State.t Server.t
@@ -655,9 +631,23 @@ let on_request :
     let+ doc = Document_store.get_opt store uri in
     Document.syntax doc
   in
-  match syntax with
-  | Some (Ocamllex | Menhir) -> not_supported ()
-  | _ -> ocaml_on_request server req
+  match req with
+  | Client_request.UnknownRequest { meth; params } -> (
+    match
+      [ (Switch_impl_intf.meth, Switch_impl_intf.on_request) ]
+      |> List.assoc_opt meth
+    with
+    | None ->
+      Fiber.return
+        (Error
+           (make_error ~code:InternalError ~message:"Unknown method"
+              ~data:(`Assoc [ ("method", `String meth) ])
+              ()))
+    | Some handler -> handler ~params state )
+  | _ -> (
+    match syntax with
+    | Some (Ocamllex | Menhir) -> not_supported ()
+    | _ -> ocaml_on_request server req )
 
 let on_notification server (notification : Client_notification.t) :
     State.t Fiber.t =

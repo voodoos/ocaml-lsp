@@ -34,7 +34,10 @@ possible and does not make any assumptions about IO.
   ocaml-syntax-shims
   cppo
   uutf
-  (ppx_expect :with-test)
+  csexp
+  (menhir :with-test)
+  (cinaps :with-test)
+  (ppx_expect (and :with-test (>= v0.14.0)))
   (ocaml (>= 4.06))
   (dune (>= 2.0))))
 
@@ -48,6 +51,8 @@ possible and does not make any assumptions about IO.
   menhir
   ppx_yojson_conv_lib
   dune-build-info
+  (csexp (>= 1.2.3))
+  (result (>= 1.5))
   (ocamlformat :with-test)
   (reason :with-test)
   (ocamlfind (>= 1.5.2))
