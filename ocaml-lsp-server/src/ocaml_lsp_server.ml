@@ -439,15 +439,26 @@ let references (state : State.t)
   let doc = Document_store.get state.store uri in
   match Document.kind doc with
   | `Other -> Fiber.return None
-  | `Merlin doc ->
+  | `Merlin merlin ->
     let command =
-      Query_protocol.Occurrences (`Ident_at (Position.logical position))
+      Query_protocol.Occurrences
+        (`Ident_at (Position.logical position), `Project)
     in
-    let+ locs = Document.Merlin.dispatch_exn doc command in
+    let+ locs = Document.Merlin.dispatch_exn merlin command in
     Some
       (List.map locs ~f:(fun loc ->
            let range = Range.of_loc loc in
-           (* using original uri because merlin is looking only in local file *)
+           let uri =
+             match loc.loc_start.pos_fname with
+             | "" -> uri
+             | path -> Uri.of_path path
+           in
+           Log.log ~section:"debug" (fun () ->
+               Log.msg
+                 "merlin returned fname %a"
+                 [ ("pos_fname", `String loc.loc_start.pos_fname)
+                 ; ("uri", `String (Uri.to_string uri))
+                 ]);
            { Location.uri; range }))
 
 let highlight (state : State.t)
@@ -458,7 +469,7 @@ let highlight (state : State.t)
   | `Other -> Fiber.return None
   | `Merlin m ->
     let command =
-      Query_protocol.Occurrences (`Ident_at (Position.logical position))
+      Query_protocol.Occurrences (`Ident_at (Position.logical position), `Buffer)
     in
     let+ locs = Document.Merlin.dispatch_exn m command in
     let lsp_locs =
@@ -626,7 +637,8 @@ let on_request :
         | `Other -> Fiber.return None
         | `Merlin doc ->
           let command =
-            Query_protocol.Occurrences (`Ident_at (Position.logical position))
+            Query_protocol.Occurrences
+              (`Ident_at (Position.logical position), `Buffer)
           in
           let+ locs = Document.Merlin.dispatch_exn doc command in
           let loc =
