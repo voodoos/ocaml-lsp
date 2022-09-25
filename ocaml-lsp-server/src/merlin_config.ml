@@ -51,6 +51,7 @@ module Config = struct
   type t =
     { build_path : string list
     ; source_path : string list
+    ; build_dir : string option
     ; cmi_path : string list
     ; cmt_path : string list
     ; flags : string list Std.with_workdir list
@@ -69,6 +70,7 @@ module Config = struct
     ; extensions = []
     ; suffixes = []
     ; flags = []
+    ; build_dir = None
     ; stdlib = None
     ; reader = []
     ; exclude_query_dir = false
@@ -108,6 +110,7 @@ module Config = struct
         let flags = { Std.workdir = cwd; workval = flags } in
         ({ config with flags = flags :: config.flags }, errors)
       | `STDLIB path -> ({ config with stdlib = Some path }, errors)
+      | `BUILD_DIR path -> ({ config with build_dir = Some path }, errors)
       | `READER reader -> ({ config with reader }, errors)
       | `EXCLUDE_QUERY_DIR -> ({ config with exclude_query_dir = true }, errors)
       | `UNKNOWN_TAG _ ->
@@ -127,6 +130,7 @@ module Config = struct
       ; suffixes = clean config.suffixes
       ; flags = clean config.flags
       ; stdlib = config.stdlib
+      ; build_dir = config.build_dir
       ; reader = config.reader
       ; exclude_query_dir = config.exclude_query_dir
       }
@@ -141,6 +145,7 @@ module Config = struct
     ; extensions = t.extensions @ merlin.extensions
     ; suffixes = t.suffixes @ merlin.suffixes
     ; stdlib = (if t.stdlib = None then merlin.stdlib else t.stdlib)
+    ; build_dir = (if t.build_dir = None then merlin.build_dir else t.build_dir)
     ; reader = (if t.reader = [] then merlin.reader else t.reader)
     ; flags_to_apply = t.flags @ merlin.flags_to_apply
     ; failures = failures @ merlin.failures
