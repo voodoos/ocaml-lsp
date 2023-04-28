@@ -223,6 +223,17 @@ module Dot_protocol_io =
     (struct
       include Lev_fiber_csexp.Session
 
+      type in_chan = t
+
+      type out_chan = t
+
+      let read t =
+        let open Fiber.O in
+        let+ opt = read t in
+        match opt with
+        | Some r -> Result.return r
+        | None -> Error "Read error"
+
       let write t x = write t [ x ]
     end)
 

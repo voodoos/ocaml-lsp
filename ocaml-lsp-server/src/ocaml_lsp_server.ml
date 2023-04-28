@@ -444,7 +444,7 @@ let references (state : State.t)
   | `Other -> Fiber.return None
   | `Merlin doc ->
     let command =
-      Query_protocol.Occurrences (`Ident_at (Position.logical position))
+      Query_protocol.Occurrences (`Ident_at (Position.logical position), `Buffer)
     in
     let+ locs = Document.Merlin.dispatch_exn doc command in
     Some
@@ -461,7 +461,7 @@ let highlight (state : State.t)
   | `Other -> Fiber.return None
   | `Merlin m ->
     let command =
-      Query_protocol.Occurrences (`Ident_at (Position.logical position))
+      Query_protocol.Occurrences (`Ident_at (Position.logical position), `Buffer)
     in
     let+ locs = Document.Merlin.dispatch_exn m command in
     let lsp_locs =
@@ -636,7 +636,8 @@ let on_request :
         | `Other -> Fiber.return None
         | `Merlin doc ->
           let command =
-            Query_protocol.Occurrences (`Ident_at (Position.logical position))
+            Query_protocol.Occurrences
+              (`Ident_at (Position.logical position), `Buffer)
           in
           let+ locs = Document.Merlin.dispatch_exn doc command in
           let loc =
