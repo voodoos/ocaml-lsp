@@ -435,12 +435,22 @@ let references (state : State.t)
     let+ locs =
       Document.Merlin.dispatch_exn
         doc
-        (Occurrences (`Ident_at (Position.logical position), `Buffer))
+        (Occurrences (`Ident_at (Position.logical position), `Project))
     in
     Some
       (List.map locs ~f:(fun loc ->
            let range = Range.of_loc loc in
-           (* using original uri because merlin is looking only in local file *)
+           let uri =
+             match loc.loc_start.pos_fname with
+             | "" -> uri
+             | path -> Uri.of_path path
+           in
+           Log.log ~section:"debug" (fun () ->
+               Log.msg
+                 "merlin returned fname %a"
+                 [ ("pos_fname", `String loc.loc_start.pos_fname)
+                 ; ("uri", `String (Uri.to_string uri))
+                 ]);
            { Location.uri; range }))
 
 let highlight (state : State.t)
