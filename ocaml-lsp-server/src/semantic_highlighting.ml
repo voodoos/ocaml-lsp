@@ -422,7 +422,7 @@ end = struct
     self.attributes self pld_attributes
 
   let value_binding (self : Ast_iterator.iterator)
-      ({ pvb_pat; pvb_expr; pvb_attributes; pvb_loc = _ } as vb :
+      ({ pvb_pat; pvb_expr; pvb_attributes; pvb_loc = _; _ } as vb :
         Parsetree.value_binding) =
     match
       match (pvb_pat.ppat_desc, pvb_expr.pexp_desc) with
@@ -749,8 +749,8 @@ end = struct
           self.module_type self mt);
         `Custom_iterator
       | Pmod_extension _ -> `Custom_iterator
-      | Pmod_unpack _ | Pmod_apply (_, _) | Pmod_structure _ ->
-        `Default_iterator
+      | Pmod_unpack _ | Pmod_apply (_, _) | Pmod_structure _ | Pmod_apply_unit _
+        -> `Default_iterator
     with
     | `Custom_iterator -> self.attributes self pmod_attributes
     | `Default_iterator -> Ast_iterator.default_iterator.module_expr self me

@@ -71,6 +71,7 @@ let fold_over_parsetree (parsetree : Mreader.parsetree) =
         Ast_iterator.default_iterator.module_expr self module_expr
       | Parsetree.Pmod_ident _
       | Parsetree.Pmod_apply (_, _)
+      | Pmod_apply_unit _
       | Parsetree.Pmod_constraint (_, _)
       | Parsetree.Pmod_unpack _ | Parsetree.Pmod_extension _ ->
         Ast_iterator.default_iterator.module_expr self module_expr
