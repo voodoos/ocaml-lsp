@@ -57,6 +57,7 @@ module Config = struct
     ; extensions : string list
     ; suffixes : (string * string) list
     ; stdlib : string option
+    ; index_file : string option
     ; reader : string list
     ; exclude_query_dir : bool
     ; use_ppx_cache : bool
@@ -71,6 +72,7 @@ module Config = struct
     ; suffixes = []
     ; flags = []
     ; stdlib = None
+    ; index_file = None
     ; reader = []
     ; exclude_query_dir = false
     ; use_ppx_cache = false
@@ -110,6 +112,7 @@ module Config = struct
         let flags = { Std.workdir = cwd; workval = flags } in
         ({ config with flags = flags :: config.flags }, errors)
       | `STDLIB path -> ({ config with stdlib = Some path }, errors)
+      | `INDEX_FILE path -> ({ config with index_file = Some path }, errors)
       | `READER reader -> ({ config with reader }, errors)
       | `EXCLUDE_QUERY_DIR -> ({ config with exclude_query_dir = true }, errors)
       | `USE_PPX_CACHE -> ({ config with use_ppx_cache = true }, errors)
@@ -130,6 +133,7 @@ module Config = struct
       ; suffixes = clean config.suffixes
       ; flags = clean config.flags
       ; stdlib = config.stdlib
+      ; index_file = config.index_file
       ; reader = config.reader
       ; exclude_query_dir = config.exclude_query_dir
       ; use_ppx_cache = config.use_ppx_cache
