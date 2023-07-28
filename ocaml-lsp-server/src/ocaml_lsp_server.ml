@@ -92,6 +92,7 @@ let initialize_info (client_capabilities : ClientCapabilities.t) :
               ; Req_switch_impl_intf.capability
               ; Req_infer_intf.capability
               ; Req_typed_holes.capability
+              ; Req_type_expression.capability
               ; Req_wrapping_ast_node.capability
               ; Dune.view_promotion_capability
               ; Req_hover_extended.capability
@@ -497,6 +498,7 @@ let on_request :
                 Fiber.return (Req_switch_impl_intf.on_request ~params)) )
       ; (Req_infer_intf.meth, Req_infer_intf.on_request)
       ; (Req_typed_holes.meth, Req_typed_holes.on_request)
+      ; (Req_type_expression.meth, Req_type_expression.on_request)
       ; (Req_wrapping_ast_node.meth, Req_wrapping_ast_node.on_request)
       ; ( Semantic_highlighting.Debug.meth_request_full
         , Semantic_highlighting.Debug.on_request_full )
