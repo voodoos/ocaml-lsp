@@ -3,7 +3,7 @@ open Fiber.O
 
 let capability = ("handleTypeExpr", `Bool true)
 
-let meth = "ocamllsp/typedHoles"
+let meth = "ocamllsp/typeExpr"
 
 module Request_params = struct
   type t = Uri.t * Position.t * string
