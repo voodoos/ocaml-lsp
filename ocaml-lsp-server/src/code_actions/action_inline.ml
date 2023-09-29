@@ -63,7 +63,7 @@ let find_inline_task typedtree pos =
       match expr.exp_desc with
       | Texp_let
           ( Nonrecursive
-          , [ { vb_pat = { pat_desc = Tpat_var (inlined_var, { loc; _ }); _ }
+          , [ { vb_pat = { pat_desc = Tpat_var (inlined_var, { loc; _ }, _); _ }
               ; vb_expr = inlined_expr
               ; _
               }
@@ -79,7 +79,7 @@ let find_inline_task typedtree pos =
       match item.str_desc with
       | Tstr_value
           ( Nonrecursive
-          , [ { vb_pat = { pat_desc = Tpat_var (inlined_var, { loc; _ }); _ }
+          , [ { vb_pat = { pat_desc = Tpat_var (inlined_var, { loc; _ }, _); _ }
               ; vb_expr = inlined_expr
               ; _
               }
@@ -190,8 +190,8 @@ end = struct
     let pat_iter (type k) (iter : I.iterator)
         (pat : k Typedtree.general_pattern) =
       match pat.pat_desc with
-      | Tpat_var (id, { loc; _ }) -> paths := Loc.Map.set !paths loc (Pident id)
-      | Tpat_alias (pat, id, { loc; _ }) ->
+      | Tpat_var (id, { loc; _ }, _) -> paths := Loc.Map.set !paths loc (Pident id)
+      | Tpat_alias (pat, id, { loc; _ }, _) ->
         paths := Loc.Map.set !paths loc (Pident id);
         I.default_iterator.pat iter pat
       | _ -> I.default_iterator.pat iter pat
