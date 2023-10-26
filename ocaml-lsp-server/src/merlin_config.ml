@@ -149,7 +149,7 @@ module Config = struct
     ; extensions = t.extensions @ merlin.extensions
     ; suffixes = t.suffixes @ merlin.suffixes
     ; stdlib = (if t.stdlib = None then merlin.stdlib else t.stdlib)
-    ; index_file = merlin.index_file
+    ; index_file = t.index_file
     ; reader = (if t.reader = [] then merlin.reader else t.reader)
     ; flags_to_apply = t.flags @ merlin.flags_to_apply
     ; failures = failures @ merlin.failures
