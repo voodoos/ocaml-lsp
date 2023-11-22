@@ -58,6 +58,7 @@ module Config = struct
     ; suffixes : (string * string) list
     ; stdlib : string option
     ; index_file : string option
+    ; unit_name : string option
     ; reader : string list
     ; exclude_query_dir : bool
     ; use_ppx_cache : bool
@@ -73,6 +74,7 @@ module Config = struct
     ; flags = []
     ; stdlib = None
     ; index_file = None
+    ; unit_name = None
     ; reader = []
     ; exclude_query_dir = false
     ; use_ppx_cache = false
@@ -113,6 +115,7 @@ module Config = struct
         ({ config with flags = flags :: config.flags }, errors)
       | `STDLIB path -> ({ config with stdlib = Some path }, errors)
       | `INDEX_FILE path -> ({ config with index_file = Some path }, errors)
+      | `UNIT_NAME name -> ({ config with unit_name = Some name }, errors)
       | `READER reader -> ({ config with reader }, errors)
       | `EXCLUDE_QUERY_DIR -> ({ config with exclude_query_dir = true }, errors)
       | `USE_PPX_CACHE -> ({ config with use_ppx_cache = true }, errors)
@@ -134,6 +137,7 @@ module Config = struct
       ; flags = clean config.flags
       ; stdlib = config.stdlib
       ; index_file = config.index_file
+      ; unit_name = config.unit_name
       ; reader = config.reader
       ; exclude_query_dir = config.exclude_query_dir
       ; use_ppx_cache = config.use_ppx_cache
@@ -150,6 +154,7 @@ module Config = struct
     ; suffixes = t.suffixes @ merlin.suffixes
     ; stdlib = (if t.stdlib = None then merlin.stdlib else t.stdlib)
     ; index_file = t.index_file
+    ; unit_name = t.unit_name
     ; reader = (if t.reader = [] then merlin.reader else t.reader)
     ; flags_to_apply = t.flags @ merlin.flags_to_apply
     ; failures = failures @ merlin.failures
