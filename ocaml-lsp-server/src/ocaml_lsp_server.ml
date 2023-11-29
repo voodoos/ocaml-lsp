@@ -432,7 +432,7 @@ let references (state : State.t)
   match Document.kind doc with
   | `Other -> Fiber.return None
   | `Merlin doc ->
-    let+ locs =
+    let+ locs, _desync =
       Document.Merlin.dispatch_exn
         doc
         (Occurrences (`Ident_at (Position.logical position), `Project))
@@ -460,7 +460,7 @@ let highlight (state : State.t)
   match Document.kind doc with
   | `Other -> Fiber.return None
   | `Merlin m ->
-    let+ locs =
+    let+ locs, _desync =
       Document.Merlin.dispatch_exn
         m
         (Occurrences (`Ident_at (Position.logical position), `Buffer))
@@ -636,7 +636,7 @@ let on_request :
         match Document.kind doc with
         | `Other -> Fiber.return None
         | `Merlin doc ->
-          let+ locs =
+          let+ locs, _desync =
             Document.Merlin.dispatch_exn
               doc
               (Occurrences (`Ident_at (Position.logical position), `Buffer))
