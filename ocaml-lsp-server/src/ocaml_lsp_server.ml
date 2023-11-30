@@ -681,7 +681,7 @@ let on_request :
             Document.Merlin.dispatch_exn
               ~name:"occurrences"
               doc
-              (Occurrences (`Ident_at (Position.logical position), `Buffer))
+              (Occurrences (`Ident_at (Position.logical position), `Project))
           in
           let loc =
             List.find_opt locs ~f:(fun loc ->
