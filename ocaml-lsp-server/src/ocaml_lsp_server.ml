@@ -652,7 +652,7 @@ let on_request :
           let+ locs, _desync =
             Document.Merlin.dispatch_exn
               doc
-              (Occurrences (`Ident_at (Position.logical position), `Buffer))
+              (Occurrences (`Ident_at (Position.logical position), `Project))
           in
           let loc =
             List.find_opt locs ~f:(fun loc ->
