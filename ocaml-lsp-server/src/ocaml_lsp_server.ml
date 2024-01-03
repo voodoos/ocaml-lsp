@@ -438,17 +438,18 @@ let references rpc (state : State.t)
         (Occurrences (`Ident_at (Position.logical position), `Project))
     in
     let+ () =
-      if not desync then Fiber.return () else
-      let msg =
-        let message =
-          "The index might be out-of-sync and only local results are shown. \
-           If you use Dune you can build the target `@ocaml-index` to refresh \
-           the index."
+      if not desync then Fiber.return ()
+      else
+        let msg =
+          let message =
+            "The index might be out-of-sync and only local results are shown. \
+             If you use Dune you can build the target `@ocaml-index` to \
+             refresh the index."
+          in
+          ShowMessageParams.create ~message ~type_:Warning
         in
-        ShowMessageParams.create ~message ~type_:Warning
-      in
-      task_if_running state.detached ~f:(fun () ->
-          Server.notification rpc (ShowMessage msg))
+        task_if_running state.detached ~f:(fun () ->
+            Server.notification rpc (ShowMessage msg))
     in
     Some
       (List.map locs ~f:(fun loc ->

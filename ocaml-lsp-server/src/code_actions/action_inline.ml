@@ -190,7 +190,8 @@ end = struct
     let pat_iter (type k) (iter : I.iterator)
         (pat : k Typedtree.general_pattern) =
       match pat.pat_desc with
-      | Tpat_var (id, { loc; _ }, _) -> paths := Loc.Map.set !paths loc (Pident id)
+      | Tpat_var (id, { loc; _ }, _) ->
+        paths := Loc.Map.set !paths loc (Pident id)
       | Tpat_alias (pat, id, { loc; _ }, _) ->
         paths := Loc.Map.set !paths loc (Pident id);
         I.default_iterator.pat iter pat
