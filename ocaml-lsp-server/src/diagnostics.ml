@@ -157,11 +157,14 @@ let send =
             { d with source }
           else fun _pid x -> x
         in
-        Table.foldi ~init:() t.dune ~f:(fun dune per_dune () ->
-            Table.iter per_dune ~f:(fun (uri, diagnostic) ->
-                if Uri_set.mem dirty_uris uri then
-                  let diagnostic = set_dune_source dune.pid diagnostic in
-                  add_dune_diagnostic pending uri diagnostic));
+        if false then
+          (* In the 414+index branch diagnotstice deduplication doesn't work as
+             expected, disabling it for the preview *)
+          Table.foldi ~init:() t.dune ~f:(fun dune per_dune () ->
+              Table.iter per_dune ~f:(fun (uri, diagnostic) ->
+                  if Uri_set.mem dirty_uris uri then
+                    let diagnostic = set_dune_source dune.pid diagnostic in
+                    add_dune_diagnostic pending uri diagnostic));
         t.dirty_uris <-
           (match which with
           | `All -> Uri_set.empty
