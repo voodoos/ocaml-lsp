@@ -1,19 +1,33 @@
-# Unreleased
+# 1.17.0
 
 ## Fixes
 
 - Fix missing super & subscripts in markdown documentation. (#1170)
+
 - Do not invoke dune at all if `--fallback-read-dot-merlin` flag is on. (#1173)
+
 - Fix semantic highlighting of infix operators that contain '.'. (#1186)
+
 - Disable highlighting unit as an enum member to fix comment highlighting bug. (#1185)
-- Improve type-on-hover efficiency by only formatting the type of the first
-  enclosing. (#1191)
+
+- Improve type-on-hover and type-annotate efficiency by only formatting the type
+  of the first enclosing. (#1191, #1196)
+
+- Fix the encoding of URI's to match how vscode does it (#1197)
+
+- Fix parsing of completion prefixes (#1181)
 
 ## Features
 
+- Compatibility with Odoc 2.3.0, with support for the introduced syntax: tables,
+  and "codeblock output" (#1184)
+
 - Display text of references in doc strings (#1166)
+
 - Add mark/remove unused actions for open, types, for loop indexes, modules,
   match cases, rec, and constructors (#1141)
+
+- Offer auto-completion for the keyword `in` (#1217)
 
 # 1.16.2
 
@@ -92,6 +106,8 @@
   running ([#1005](https://github.com/ocaml/ocaml-lsp/pull/1005), fixes
   [#941](https://github.com/ocaml/ocaml-lsp/issues/941),
   [#1003](https://github.com/ocaml/ocaml-lsp/issues/1003))
+
+# 1.15.0
 
 ## Features
 

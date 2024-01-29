@@ -3,6 +3,7 @@ module Version = Version
 module Diagnostics = Diagnostics
 module Doc_to_md = Doc_to_md
 module Diff = Diff
+module Testing = Testing
 open Fiber.O
 
 let make_error = Jsonrpc.Response.Error.make
@@ -104,8 +105,8 @@ let initialize_info (client_capabilities : ClientCapabilities.t) :
         if
           Action_open_related.available
             (let open Option.O in
-            let* window = client_capabilities.window in
-            window.showDocument)
+             let* window = client_capabilities.window in
+             window.showDocument)
         then
           view_metrics_command_name :: Action_open_related.command_name
           :: Document_text_command.command_name
@@ -210,8 +211,8 @@ let on_initialize server (ip : InitializeParams.t) =
   let diagnostics =
     Diagnostics.create
       (let open Option.O in
-      let* td = ip.capabilities.textDocument in
-      td.publishDiagnostics)
+       let* td = ip.capabilities.textDocument in
+       td.publishDiagnostics)
       (function
         | [] -> Fiber.return ()
         | diagnostics ->
