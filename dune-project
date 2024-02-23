@@ -60,14 +60,13 @@ possible and does not make any assumptions about IO.
   astring
   camlp-streams
   (ppx_expect (and (>= v0.15.0) :with-test))
-  (ocamlformat (and :with-test (= 0.24.1)))
+  (ocamlformat (and :with-test (= 0.26.1)))
   (ocamlc-loc (>= 3.7.0))
   (pp (>= 1.1.2))
   (csexp (>= 1.5))
   (ocamlformat-rpc-lib (>= 0.21.0))
   (odoc :with-doc)
-  (ocaml (and (>= 4.14) (< 5.2)))
-  (merlin-lib (and (>= 4.14) (< 5.0)))))
+  (merlin-lib (and (>= 5.0) (< 6.0)))))
 
 (package
  (name jsonrpc)
