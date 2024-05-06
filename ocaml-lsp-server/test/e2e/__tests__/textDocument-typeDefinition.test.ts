@@ -60,8 +60,8 @@ describe("textDocument/definition", () => {
 
     expect(result.length).toBe(1);
     expect(result[0].range).toMatchObject({
-      end: { character: 0, line: 1 },
-      start: { character: 0, line: 1 },
+      end: { character: 5, line: 1 },
+      start: { character: 5, line: 1 },
     });
     expect(result[0].uri).toEqualUri(testUri("file.ml"));
   });
@@ -79,8 +79,8 @@ describe("textDocument/definition", () => {
 
     expect(result.length).toBe(1);
     expect(result[0].range).toMatchObject({
-      end: { character: 0, line: 1 },
-      start: { character: 0, line: 1 },
+      end: { character: 5, line: 1 },
+      start: { character: 5, line: 1 },
     });
     expect(result[0].uri).toEqualUri(testUri("file.ml"));
   });
@@ -97,8 +97,8 @@ describe("textDocument/definition", () => {
 
     expect(result.length).toBe(1);
     expect(result[0].range).toMatchObject({
-      end: { character: 0, line: 1 },
-      start: { character: 0, line: 1 },
+      end: { character: 5, line: 1 },
+      start: { character: 5, line: 1 },
     });
     expect(result[0].uri).toEqualUri(testUri("file.ml"));
   });
