@@ -19,14 +19,12 @@ jobs:
         os:
           - ubuntu-latest
         ocaml-compiler:
-          - "4.14"
-          - "5.0"
-          - "5.1"
+          - "5.2"
         include:
           - os: macos-latest
-            ocaml-compiler: "4.14"
+            ocaml-compiler: "5.2"
           - os: windows-latest
-            ocaml-compiler: "4.14"
+            ocaml-compiler: "5.2"
             opam-repositories: |
               opam-repository-mingw: https://github.com/ocaml-opam/opam-repository-mingw.git#sunset
               default: https://github.com/ocaml/opam-repository.git
@@ -94,7 +92,7 @@ jobs:
       - name: Set-up OCaml
         uses: ocaml/setup-ocaml@v2
         with:
-          ocaml-compiler: "4.14"
+          ocaml-compiler: "5.2"
           allow-prerelease-opam: true
 
       - name: Set git user
