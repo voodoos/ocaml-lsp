@@ -18,16 +18,10 @@ jobs:
       matrix:
         os:
           - ubuntu-latest
+          - macos-latest
+          - windows-latest
         ocaml-compiler:
           - "5.2"
-        include:
-          - os: macos-latest
-            ocaml-compiler: "5.2"
-          - os: windows-latest
-            ocaml-compiler: "5.2"
-            opam-repositories: |
-              opam-repository-mingw: https://github.com/ocaml-opam/opam-repository-mingw.git#sunset
-              default: https://github.com/ocaml/opam-repository.git
 
     runs-on: ${{ matrix.os }}
 
