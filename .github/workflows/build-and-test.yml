@@ -19,7 +19,7 @@ jobs:
         os:
           - ubuntu-latest
           - macos-latest
-          - windows-latest
+          #- windows-latest # setup-ocaml does not support 5.2 on windows yet
 
     runs-on: ${{ matrix.os }}
 
