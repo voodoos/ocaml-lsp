@@ -68,8 +68,8 @@ describe("textDocument/declaration", () => {
 
     expect(result.length).toBe(1);
     expect(result[0].range).toMatchObject({
-      end: { character: 0, line: 0 },
-      start: { character: 0, line: 0 },
+      end: { character: 4, line: 0 },
+      start: { character: 4, line: 0 },
     });
     expect(result[0].uri).toEqualUri(testUri(createPathForFile("lib.mli")));
   });
