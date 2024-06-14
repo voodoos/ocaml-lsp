@@ -7,7 +7,7 @@
       flake = false;
     };
     merlin5_1 = {
-      url = "github:ocaml/merlin/v4.14-501";
+      url = "github:ocaml/merlin/master";
       flake = false;
     };
   };
