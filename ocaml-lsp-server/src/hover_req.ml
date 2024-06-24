@@ -231,8 +231,8 @@ let format_type_enclosing ~syntax ~markdown ~typ ~doc
        in
        { MarkupContent.value; kind = MarkupKind.PlainText })
 
-let format_ppx_expansion ~ppx ~expansion =
-  let value = sprintf "(* ppx %s expansion *)\n%s" ppx expansion in
+let format_ppx_expansion ~expansion =
+  let value = sprintf "%s" expansion in
   `MarkedString { Lsp.Types.MarkedString.value; language = Some "ocaml" }
 
 let type_enclosing_hover ~(server : State.t Server.t) ~(doc : Document.t)
@@ -316,104 +316,6 @@ let type_enclosing_hover ~(server : State.t Server.t) ~(doc : Document.t)
     let hover = Hover.create ~contents ~range () in
     Fiber.return (Some hover)
 
-let ppx_expression_hover ~ppx_parsetree ~(expr : Parsetree.expression)
-    ~(ppx : string Asttypes.loc) =
-  let expanded_ppx = ref None in
-  let at_expr_location (loc : Ocaml_parsing.Location.t) =
-    expr.pexp_loc.loc_start.pos_cnum <= loc.loc_start.pos_cnum
-    && loc.loc_end.pos_cnum <= expr.pexp_loc.loc_end.pos_cnum
-  in
-  (* Locate the first expression at the original PPX location. *)
-  let expr (self : Ast_iterator.iterator) (expr : Parsetree.expression) =
-    match at_expr_location expr.pexp_loc with
-    | true -> expanded_ppx := Some expr
-    | false -> Ast_iterator.default_iterator.expr self expr
-  in
-  let iterator = { Ast_iterator.default_iterator with expr } in
-  let () =
-    match ppx_parsetree with
-    | `Interface signature -> iterator.signature iterator signature
-    | `Implementation structure -> iterator.structure iterator structure
-  in
-  Option.map !expanded_ppx ~f:(fun expr ->
-      let range =
-        Range.of_loc
-          (if ppx.loc.loc_start.pos_cnum < expr.pexp_loc.loc_start.pos_cnum then
-             { ppx.loc with loc_end = expr.pexp_loc.loc_end }
-           else expr.pexp_loc)
-      in
-      let contents =
-        format_ppx_expansion
-          ~ppx:ppx.txt
-          ~expansion:(Ocaml_parsing.Pprintast.string_of_expression expr)
-      in
-      Hover.create ~contents ~range ())
-
-let typedef_attribute_hover ~ppx_parsetree ~(decl : Parsetree.type_declaration)
-    ~(attr : Parsetree.attribute) =
-  match attr.attr_name.txt with
-  | "deriving" ->
-    let signature = ref [] in
-    let structure = ref [] in
-    let at_decl_location (loc : Ocaml_parsing.Location.t) =
-      decl.ptype_loc.loc_start.pos_cnum <= loc.loc_start.pos_cnum
-      && decl.ptype_loc.loc_end.pos_cnum >= loc.loc_start.pos_cnum
-    in
-    let contains_decl (decls : Parsetree.type_declaration list) =
-      List.exists decls ~f:(fun (decl' : Parsetree.type_declaration) ->
-          String.equal decl.ptype_name.txt decl'.ptype_name.txt)
-    in
-    let signature_item (self : Ast_iterator.iterator)
-        (item : Parsetree.signature_item) =
-      match at_decl_location item.psig_loc with
-      | true -> (
-        match item.psig_desc with
-        | Psig_type (_, decls) when contains_decl decls ->
-          (* Don't add the type declaration itself. *) ()
-        | _ -> signature := item :: !signature)
-      | false -> Ast_iterator.default_iterator.signature_item self item
-    in
-    let structure_item (self : Ast_iterator.iterator)
-        (item : Parsetree.structure_item) =
-      match at_decl_location item.pstr_loc with
-      | true -> (
-        match item.pstr_desc with
-        | Pstr_type (_, decls) when contains_decl decls ->
-          (* Don't add the type definition itself. *) ()
-        | _ -> structure := item :: !structure)
-      | false -> Ast_iterator.default_iterator.structure_item self item
-    in
-    let iterator =
-      { Ast_iterator.default_iterator with signature_item; structure_item }
-    in
-    let () =
-      match ppx_parsetree with
-      | `Interface signature -> iterator.signature iterator signature
-      | `Implementation structure -> iterator.structure iterator structure
-    in
-    let expansion =
-      match (!signature, !structure) with
-      | [], [] -> None
-      | signature, [] ->
-        ignore (Format.flush_str_formatter ());
-        Pprintast.signature Format.str_formatter (List.rev signature);
-        Some (Format.flush_str_formatter ())
-      | [], structure ->
-        Some (Pprintast.string_of_structure (List.rev structure))
-      | _ :: _, _ :: _ ->
-        (* This should not be possible, unless a PPXs provides incorrect
-           position information that places items from a [sig end] into a
-           [struct end] or vice versa. *)
-        None
-    in
-    Option.map expansion ~f:(fun expansion ->
-        let range = Range.of_loc attr.attr_loc in
-        let contents =
-          format_ppx_expansion ~ppx:attr.attr_name.txt ~expansion
-        in
-        Hover.create ~contents ~range ())
-  | _ -> None
-
 let handle server { HoverParams.textDocument = { uri }; position; _ } mode =
   Fiber.of_thunk (fun () ->
       let state : State.t = Server.state server in
@@ -424,12 +326,15 @@ let handle server { HoverParams.textDocument = { uri }; position; _ } mode =
       match Document.kind doc with
       | `Other -> Fiber.return None
       | `Merlin merlin -> (
-        let* parsetree =
+        let* parsetree_and_pipeline =
           Document.Merlin.with_pipeline_exn
             ~name:"hover"
             (Document.merlin_exn doc)
-            (fun pipeline -> Mpipeline.reader_parsetree pipeline)
+            (fun pipeline ->
+              let parsetree = Mpipeline.reader_parsetree pipeline in
+              (parsetree, pipeline))
         in
+        let parsetree, pipeline = parsetree_and_pipeline in
         match hover_at_cursor parsetree (Position.logical position) with
         | None -> Fiber.return None
         | Some `Type_enclosing ->
@@ -446,15 +351,20 @@ let handle server { HoverParams.textDocument = { uri }; position; _ } mode =
             ~uri
             ~position
             ~with_syntax_doc
-        | Some ((`Ppx_expr _ | `Ppx_typedef_attr _) as ppx_kind) -> (
-          let+ ppx_parsetree =
-            Document.Merlin.with_pipeline_exn
-              ~name:"expand-ppx"
-              (Document.merlin_exn doc)
-              (fun pipeline -> Mpipeline.ppx_parsetree pipeline)
-          in
-          match ppx_kind with
-          | `Ppx_expr (expr, ppx) ->
-            ppx_expression_hover ~ppx_parsetree ~expr ~ppx
-          | `Ppx_typedef_attr (decl, attr) ->
-            typedef_attribute_hover ~ppx_parsetree ~decl ~attr)))
+        | Some (`Ppx_expr _ | `Ppx_typedef_attr _) -> (
+          match
+            Document.Merlin.ppx_expand pipeline (Position.logical position)
+          with
+          | Some ppx ->
+            let contents = format_ppx_expansion ~expansion:ppx.code in
+            let range =
+              Range.create
+                ~end_:
+                  (Option.value_exn (Position.of_lexical_position ppx.attr_end))
+                ~start:
+                  (Option.value_exn
+                     (Position.of_lexical_position ppx.attr_start))
+            in
+            let hover = Hover.create ~contents ~range () in
+            Fiber.return (Some hover)
+          | None -> Fiber.return None)))

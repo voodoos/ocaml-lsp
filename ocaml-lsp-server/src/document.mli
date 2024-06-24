@@ -80,6 +80,9 @@ module Merlin : sig
     ; syntax_doc : Query_protocol.syntax_doc_result option
     }
 
+  val ppx_expand :
+    Mpipeline.t -> Msource.position -> Query_protocol.ppx_expand_result option
+
   val type_enclosing :
        ?name:string
     -> t

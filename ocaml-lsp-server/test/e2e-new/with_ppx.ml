@@ -71,15 +71,17 @@ let%expect_test "with-ppx" =
   print_endline output;
   [%expect
     {xxx|
-    Received 0 diagnostics
-    {
-      "contents": {
-        "value": "(* ppx expect expansion *)\nExpect_test_collector.Current_file.unset ()",
-        "language": "ocaml"
-      },
-      "range": {
-        "end": { "character": 16, "line": 2 },
-        "start": { "character": 4, "line": 2 }
+      Received 0 diagnostics
+      {
+        "contents": {
+          "value": "((({\n     tag = (Some \"\");\n     body = (Pretty \"\");\n     extid_location =\n       ((({\n            filename = (Expect_test_common.File.Name.of_string \"for_ppx.ml\");\n            line_number = 3;\n            line_start = 110;\n            start_pos = 114;\n            end_pos = 120\n          } : Expect_test_common.File.Location.t))[@merlin.hide ]);\n     body_location =\n       ((({\n            filename = (Expect_test_common.File.Name.of_string \"for_ppx.ml\");\n            line_number = 3;\n            line_start = 110;\n            start_pos = 121;\n            end_pos = 125\n          } : Expect_test_common.File.Location.t))[@merlin.hide ])\n   } : string Expect_test_common.Expectation.t))\n[@merlin.hide ])Expect_test_collector.save_output\n                  ((({\n                       filename =\n                         (Expect_test_common.File.Name.of_string \"for_ppx.ml\");\n                       line_number = 3;\n                       line_start = 110;\n                       start_pos = 114;\n                       end_pos = 120\n                     } : Expect_test_common.File.Location.t))[@merlin.hide ])\nPpx_inline_test_lib.unset_lib \"ocaml_lsp_e2e\"Expect_test_collector.Current_file.unset\n                                               ()",
+          "language": "ocaml"
+        },
+        "range": {
+          "end": { "character": 16, "line": 2 },
+          "start": { "character": 2, "line": 2 }
+        }
       }
-    }
+
+
     |xxx}]

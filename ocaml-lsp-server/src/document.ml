@@ -310,6 +310,15 @@ module Merlin = struct
     | `Found s -> Some s
     | `No_documentation -> None
 
+  let ppx_expand pipeline pos =
+    let res =
+      let command = Query_protocol.Expand_ppx pos in
+      Query_commands.dispatch pipeline command
+    in
+    match res with
+    | `Found ppx -> Some ppx
+    | `No_ppx -> None
+
   type type_enclosing =
     { loc : Loc.t
     ; typ : string
