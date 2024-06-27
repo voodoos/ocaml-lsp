@@ -326,7 +326,7 @@ let handle server { HoverParams.textDocument = { uri }; position; _ } mode =
       match Document.kind doc with
       | `Other -> Fiber.return None
       | `Merlin merlin -> (
-        let* parsetree_and_pipeline =
+        let* parsetree, pipeline =
           Document.Merlin.with_pipeline_exn
             ~name:"hover"
             (Document.merlin_exn doc)
@@ -334,7 +334,6 @@ let handle server { HoverParams.textDocument = { uri }; position; _ } mode =
               let parsetree = Mpipeline.reader_parsetree pipeline in
               (parsetree, pipeline))
         in
-        let parsetree, pipeline = parsetree_and_pipeline in
         match hover_at_cursor parsetree (Position.logical position) with
         | None -> Fiber.return None
         | Some `Type_enclosing ->
