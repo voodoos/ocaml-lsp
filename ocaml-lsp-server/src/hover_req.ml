@@ -470,7 +470,6 @@ let handle server { HoverParams.textDocument = { uri }; position; _ } mode =
               (Document.merlin_exn doc)
               (fun pipeline -> Mpipeline.ppx_parsetree pipeline)
           in
-
           let ppx_source =
             Merlin_analysis.Ppx_expand.get_ppxed_source
               ~ppxed_parsetree
