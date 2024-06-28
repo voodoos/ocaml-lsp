@@ -300,7 +300,7 @@ let format_ppx_expansion ~expansion =
   `MarkedString
     { Lsp.Types.MarkedString.value = expansion; language = Some "ocaml" }
 
-let type_enclosingosing_hover ~(server : State.t Server.t) ~(doc : Document.t)
+let type_enclosing_hover ~(server : State.t Server.t) ~(doc : Document.t)
     ~with_syntax_doc ~merlin ~mode ~uri ~position =
   let state = Server.state server in
   let verbosity =
@@ -420,7 +420,7 @@ let handle server { HoverParams.textDocument = { uri }; position; _ } mode =
             | Some { enable = true } -> true
             | Some _ | None -> false
           in
-          type_enclosingosing_hover
+          type_enclosing_hover
             ~server
             ~doc
             ~merlin
