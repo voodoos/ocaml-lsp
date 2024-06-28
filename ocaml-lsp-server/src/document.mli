@@ -81,7 +81,13 @@ module Merlin : sig
     }
 
   val ppx_expand :
-    Mpipeline.t -> Msource.position -> Query_protocol.ppxed_source option
+       ppxed_parsetree:
+         [ `Implementation of Parsetree.structure
+         | `Interface of Parsetree.signature
+         ]
+    -> pos:Lexing.position
+    -> Merlin_analysis.Ppx_expand.ppx_kind * Warnings.loc
+    -> Query_protocol.ppxed_source
 
   val type_enclosing :
        ?name:string
