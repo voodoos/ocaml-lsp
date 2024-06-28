@@ -310,9 +310,6 @@ module Merlin = struct
     | `Found s -> Some s
     | `No_documentation -> None
 
-  let ppx_expand ~ppxed_parsetree ~pos ppx_kind =
-    Merlin_analysis.Ppx_expand.get_ppxed_source ~ppxed_parsetree ~pos ppx_kind
-
   type type_enclosing =
     { loc : Loc.t
     ; typ : string

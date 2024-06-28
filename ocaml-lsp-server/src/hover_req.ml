@@ -7,9 +7,9 @@ type mode =
   | Extended_variable
 
 type hover_context =
-  | Ppx_expr of Parsetree.expression * Warnings.loc
-  | Ppx_sg_attr of Parsetree.signature_item * Warnings.loc
-  | Ppx_str_attr of Parsetree.structure_item * Warnings.loc
+  | Ppx_expr of Parsetree.expression * string Asttypes.loc
+  | Ppx_sg_attr of Parsetree.signature_item * Parsetree.attribute
+  | Ppx_str_attr of Parsetree.structure_item * Parsetree.attribute
   | Type_enclosing
 
 (* possibly overwrite the default mode using an environment variable *)
@@ -100,7 +100,7 @@ let hover_at_cursor parsetree (`Logical (cursor_line, cursor_col)) =
         if is_at_keyword then result := Some Type_enclosing
         else Ast_iterator.default_iterator.expr self expr
       | Pexp_extension (ppx, _) when is_at_cursor ppx.loc ->
-        result := Some (Ppx_expr (expr, ppx.loc))
+        result := Some (Ppx_expr (expr, ppx))
       | _ -> Ast_iterator.default_iterator.expr self expr
   in
   (* Hover a value declaration in a signature *)
@@ -158,7 +158,7 @@ let hover_at_cursor parsetree (`Logical (cursor_line, cursor_col)) =
                 is_at_cursor attr.attr_loc && is_deriving_attr attr)
           in
           match deriving_attr with
-          | Some attr -> result := Some (Ppx_str_attr (item, attr.attr_loc))
+          | Some attr -> result := Some (Ppx_str_attr (item, attr))
           | None -> result := Some Type_enclosing)
         tds
     | Pstr_module desc when is_at_cursor desc.pmb_name.loc ->
@@ -169,24 +169,24 @@ let hover_at_cursor parsetree (`Logical (cursor_line, cursor_col)) =
             is_at_cursor attr.attr_loc && is_deriving_attr attr)
       in
       match deriving_attr with
-      | Some attr -> result := Some (Ppx_str_attr (item, attr.attr_loc))
-      | None -> result := Some Type_enclosing)
+      | Some attr -> result := Some (Ppx_str_attr (item, attr))
+      | None -> Ast_iterator.default_iterator.module_type_declaration self mtd)
     | Pstr_exception tc -> (
       let deriving_attr =
         List.find tc.ptyexn_attributes ~f:(fun (attr : Parsetree.attribute) ->
             is_at_cursor attr.attr_loc && is_deriving_attr attr)
       in
       match deriving_attr with
-      | Some attr -> result := Some (Ppx_str_attr (item, attr.attr_loc))
-      | None -> result := Some Type_enclosing)
+      | Some attr -> result := Some (Ppx_str_attr (item, attr))
+      | None -> Ast_iterator.default_iterator.type_exception self tc)
     | Pstr_typext tex -> (
       let deriving_attr =
         List.find tex.ptyext_attributes ~f:(fun (attr : Parsetree.attribute) ->
             is_at_cursor attr.attr_loc && is_deriving_attr attr)
       in
       match deriving_attr with
-      | Some attr -> result := Some (Ppx_str_attr (item, attr.attr_loc))
-      | None -> result := Some Type_enclosing)
+      | Some attr -> result := Some (Ppx_str_attr (item, attr))
+      | None -> Ast_iterator.default_iterator.type_extension self tex)
     | _ -> Ast_iterator.default_iterator.structure_item self item
   in
   (* Hover signature items *)
@@ -203,7 +203,7 @@ let hover_at_cursor parsetree (`Logical (cursor_line, cursor_col)) =
                 is_at_cursor attr.attr_loc && is_deriving_attr attr)
           in
           match deriving_attr with
-          | Some attr -> result := Some (Ppx_sg_attr (item, attr.attr_loc))
+          | Some attr -> result := Some (Ppx_sg_attr (item, attr))
           | None -> result := Some Type_enclosing)
         tds
     | Psig_open desc when is_at_cursor desc.popen_expr.loc ->
@@ -218,24 +218,24 @@ let hover_at_cursor parsetree (`Logical (cursor_line, cursor_col)) =
             is_at_cursor attr.attr_loc && is_deriving_attr attr)
       in
       match deriving_attr with
-      | Some attr -> result := Some (Ppx_sg_attr (item, attr.attr_loc))
-      | None -> result := Some Type_enclosing)
+      | Some attr -> result := Some (Ppx_sg_attr (item, attr))
+      | None -> Ast_iterator.default_iterator.module_type_declaration self mtd)
     | Psig_exception tc -> (
       let deriving_attr =
         List.find tc.ptyexn_attributes ~f:(fun (attr : Parsetree.attribute) ->
             is_at_cursor attr.attr_loc && is_deriving_attr attr)
       in
       match deriving_attr with
-      | Some attr -> result := Some (Ppx_sg_attr (item, attr.attr_loc))
-      | None -> result := Some Type_enclosing)
+      | Some attr -> result := Some (Ppx_sg_attr (item, attr))
+      | None -> Ast_iterator.default_iterator.type_exception self tc)
     | Psig_typext tex -> (
       let deriving_attr =
         List.find tex.ptyext_attributes ~f:(fun (attr : Parsetree.attribute) ->
             is_at_cursor attr.attr_loc && is_deriving_attr attr)
       in
       match deriving_attr with
-      | Some attr -> result := Some (Ppx_sg_attr (item, attr.attr_loc))
-      | None -> result := Some Type_enclosing)
+      | Some attr -> result := Some (Ppx_sg_attr (item, attr))
+      | None -> Ast_iterator.default_iterator.type_extension self tex)
     | _ -> Ast_iterator.default_iterator.signature_item self item
   in
   let iterator =
@@ -296,9 +296,18 @@ let format_type_enclosing ~syntax ~markdown ~typ ~doc
        in
        { MarkupContent.value; kind = MarkupKind.PlainText })
 
-let format_ppx_expansion ~expansion =
-  `MarkedString
-    { Lsp.Types.MarkedString.value = expansion; language = Some "ocaml" }
+let format_ppx_expansion ~ppx ~expansion =
+  let value = sprintf "(* ppx %s expansion *)\n%s" ppx expansion in
+  `MarkedString { Lsp.Types.MarkedString.value; language = Some "ocaml" }
+
+let create_ppx_hover_content ~ppx ~expansion ~attr_end ~attr_start =
+  let contents = format_ppx_expansion ~ppx ~expansion in
+  let range =
+    Range.create
+      ~end_:(Option.value_exn (Position.of_lexical_position attr_end))
+      ~start:(Option.value_exn (Position.of_lexical_position attr_start))
+  in
+  Fiber.return (Some (Hover.create ~contents ~range ()))
 
 let type_enclosing_hover ~(server : State.t Server.t) ~(doc : Document.t)
     ~with_syntax_doc ~merlin ~mode ~uri ~position =
@@ -388,19 +397,6 @@ let handle server { HoverParams.textDocument = { uri }; position; _ } mode =
         let store = state.store in
         Document_store.get store uri
       in
-      let* ppxed_parsetree =
-        Document.Merlin.with_pipeline_exn
-          ~name:"expand-ppx"
-          (Document.merlin_exn doc)
-          (fun pipeline -> Mpipeline.ppx_parsetree pipeline)
-      in
-      let lexical_position =
-        { Lexing.pos_fname = DocumentUri.to_path uri
-        ; pos_lnum = max position.line 0 + 1
-        ; pos_bol = 0
-        ; pos_cnum = max position.character 0
-        }
-      in
       match Document.kind doc with
       | `Other -> Fiber.return None
       | `Merlin merlin -> (
@@ -409,6 +405,13 @@ let handle server { HoverParams.textDocument = { uri }; position; _ } mode =
             ~name:"hover"
             (Document.merlin_exn doc)
             (fun pipeline -> Mpipeline.reader_parsetree pipeline)
+        in
+        let lexical_position =
+          { Lexing.pos_fname = DocumentUri.to_path uri
+          ; pos_lnum = max position.line 0 + 1
+          ; pos_bol = 0
+          ; pos_cnum = max position.character 0
+          }
         in
         match hover_at_cursor parsetree (Position.logical position) with
         | None -> Fiber.return None
@@ -426,60 +429,58 @@ let handle server { HoverParams.textDocument = { uri }; position; _ } mode =
             ~uri
             ~position
             ~with_syntax_doc
-        | Some (Ppx_expr (ppx, attr_loc)) ->
+        | Some (Ppx_expr (ppx, attr)) ->
+          let* ppxed_parsetree =
+            Document.Merlin.with_pipeline_exn
+              ~name:"expand-ppx"
+              (Document.merlin_exn doc)
+              (fun pipeline -> Mpipeline.ppx_parsetree pipeline)
+          in
           let ppx_source =
-            Document.Merlin.ppx_expand
+            Merlin_analysis.Ppx_expand.get_ppxed_source
               ~ppxed_parsetree
               ~pos:lexical_position
-              (Merlin_analysis.Ppx_expand.Expr ppx, attr_loc)
+              (Merlin_analysis.Ppx_expand.Expr ppx, attr.loc)
           in
-          let contents = format_ppx_expansion ~expansion:ppx_source.code in
-          let range =
-            Range.create
-              ~end_:
-                (Option.value_exn
-                   (Position.of_lexical_position ppx_source.attr_end))
-              ~start:
-                (Option.value_exn
-                   (Position.of_lexical_position ppx_source.attr_start))
+          create_ppx_hover_content
+            ~ppx:attr.txt
+            ~expansion:ppx_source.code
+            ~attr_end:attr.loc.loc_end
+            ~attr_start:attr.loc.loc_start
+        | Some (Ppx_sg_attr (ppx, attr)) ->
+          let* ppxed_parsetree =
+            Document.Merlin.with_pipeline_exn
+              ~name:"expand-ppx"
+              (Document.merlin_exn doc)
+              (fun pipeline -> Mpipeline.ppx_parsetree pipeline)
           in
-          let hover = Hover.create ~contents ~range () in
-          Fiber.return (Some hover)
-        | Some (Ppx_sg_attr (ppx, attr_loc)) ->
+
           let ppx_source =
-            Document.Merlin.ppx_expand
+            Merlin_analysis.Ppx_expand.get_ppxed_source
               ~ppxed_parsetree
               ~pos:lexical_position
-              (Merlin_analysis.Ppx_expand.Sig_item ppx, attr_loc)
+              (Merlin_analysis.Ppx_expand.Sig_item ppx, attr.attr_loc)
           in
-          let contents = format_ppx_expansion ~expansion:ppx_source.code in
-          let range =
-            Range.create
-              ~end_:
-                (Option.value_exn
-                   (Position.of_lexical_position ppx_source.attr_end))
-              ~start:
-                (Option.value_exn
-                   (Position.of_lexical_position ppx_source.attr_start))
+          create_ppx_hover_content
+            ~ppx:attr.attr_name.txt
+            ~expansion:ppx_source.code
+            ~attr_end:attr.attr_loc.loc_end
+            ~attr_start:attr.attr_loc.loc_start
+        | Some (Ppx_str_attr (ppx, attr)) ->
+          let* ppxed_parsetree =
+            Document.Merlin.with_pipeline_exn
+              ~name:"expand-ppx"
+              (Document.merlin_exn doc)
+              (fun pipeline -> Mpipeline.ppx_parsetree pipeline)
           in
-          let hover = Hover.create ~contents ~range () in
-          Fiber.return (Some hover)
-        | Some (Ppx_str_attr (ppx, attr_loc)) ->
           let ppx_source =
-            Document.Merlin.ppx_expand
+            Merlin_analysis.Ppx_expand.get_ppxed_source
               ~ppxed_parsetree
               ~pos:lexical_position
-              (Merlin_analysis.Ppx_expand.Str_item ppx, attr_loc)
+              (Merlin_analysis.Ppx_expand.Str_item ppx, attr.attr_loc)
           in
-          let contents = format_ppx_expansion ~expansion:ppx_source.code in
-          let range =
-            Range.create
-              ~end_:
-                (Option.value_exn
-                   (Position.of_lexical_position ppx_source.attr_end))
-              ~start:
-                (Option.value_exn
-                   (Position.of_lexical_position ppx_source.attr_start))
-          in
-          let hover = Hover.create ~contents ~range () in
-          Fiber.return (Some hover)))
+          create_ppx_hover_content
+            ~ppx:attr.attr_name.txt
+            ~expansion:ppx_source.code
+            ~attr_end:attr.attr_loc.loc_end
+            ~attr_start:attr.attr_loc.loc_start))

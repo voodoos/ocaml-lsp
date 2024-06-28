@@ -80,15 +80,6 @@ module Merlin : sig
     ; syntax_doc : Query_protocol.syntax_doc_result option
     }
 
-  val ppx_expand :
-       ppxed_parsetree:
-         [ `Implementation of Parsetree.structure
-         | `Interface of Parsetree.signature
-         ]
-    -> pos:Lexing.position
-    -> Merlin_analysis.Ppx_expand.ppx_kind * Warnings.loc
-    -> Query_protocol.ppxed_source
-
   val type_enclosing :
        ?name:string
     -> t
