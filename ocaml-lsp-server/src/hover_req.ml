@@ -151,34 +151,42 @@ let hover_at_cursor parsetree (`Logical (cursor_line, cursor_col)) =
     | Pstr_type (_, tds) ->
       List.iter
         ~f:(fun (td : Parsetree.type_declaration) ->
-          let deriving_attr =
-            List.find
-              td.ptype_attributes
-              ~f:(fun (attr : Parsetree.attribute) ->
-                is_at_cursor attr.attr_loc && is_deriving_attr attr)
-          in
-          match deriving_attr with
-          | Some attr -> result := Some (Ppx_str_attr (item, attr))
-          | None -> result := Some Type_enclosing)
+          if is_at_cursor td.ptype_name.loc then result := Some Type_enclosing
+          else
+            let deriving_attr =
+              List.find
+                td.ptype_attributes
+                ~f:(fun (attr : Parsetree.attribute) ->
+                  is_at_cursor attr.attr_loc && is_deriving_attr attr)
+            in
+            match deriving_attr with
+            | Some attr -> result := Some (Ppx_str_attr (item, attr))
+            | None -> Ast_iterator.default_iterator.type_declaration self td)
         tds
     | Pstr_module desc when is_at_cursor desc.pmb_name.loc ->
       result := Some Type_enclosing
     | Pstr_modtype mtd -> (
-      let deriving_attr =
-        List.find mtd.pmtd_attributes ~f:(fun (attr : Parsetree.attribute) ->
-            is_at_cursor attr.attr_loc && is_deriving_attr attr)
-      in
-      match deriving_attr with
-      | Some attr -> result := Some (Ppx_str_attr (item, attr))
-      | None -> Ast_iterator.default_iterator.module_type_declaration self mtd)
+      if is_at_cursor mtd.pmtd_name.loc then result := Some Type_enclosing
+      else
+        let deriving_attr =
+          List.find mtd.pmtd_attributes ~f:(fun (attr : Parsetree.attribute) ->
+              is_at_cursor attr.attr_loc && is_deriving_attr attr)
+        in
+        match deriving_attr with
+        | Some attr -> result := Some (Ppx_str_attr (item, attr))
+        | None -> Ast_iterator.default_iterator.module_type_declaration self mtd
+      )
     | Pstr_exception tc -> (
-      let deriving_attr =
-        List.find tc.ptyexn_attributes ~f:(fun (attr : Parsetree.attribute) ->
-            is_at_cursor attr.attr_loc && is_deriving_attr attr)
-      in
-      match deriving_attr with
-      | Some attr -> result := Some (Ppx_str_attr (item, attr))
-      | None -> Ast_iterator.default_iterator.type_exception self tc)
+      if is_at_cursor tc.ptyexn_constructor.pext_name.loc then
+        result := Some Type_enclosing
+      else
+        let deriving_attr =
+          List.find tc.ptyexn_attributes ~f:(fun (attr : Parsetree.attribute) ->
+              is_at_cursor attr.attr_loc && is_deriving_attr attr)
+        in
+        match deriving_attr with
+        | Some attr -> result := Some (Ppx_str_attr (item, attr))
+        | None -> Ast_iterator.default_iterator.type_exception self tc)
     | Pstr_typext tex -> (
       let deriving_attr =
         List.find tex.ptyext_attributes ~f:(fun (attr : Parsetree.attribute) ->
@@ -196,15 +204,17 @@ let hover_at_cursor parsetree (`Logical (cursor_line, cursor_col)) =
     | Psig_type (_, tds) ->
       List.iter
         ~f:(fun (td : Parsetree.type_declaration) ->
-          let deriving_attr =
-            List.find
-              td.ptype_attributes
-              ~f:(fun (attr : Parsetree.attribute) ->
-                is_at_cursor attr.attr_loc && is_deriving_attr attr)
-          in
-          match deriving_attr with
-          | Some attr -> result := Some (Ppx_sg_attr (item, attr))
-          | None -> result := Some Type_enclosing)
+          if is_at_cursor td.ptype_name.loc then result := Some Type_enclosing
+          else
+            let deriving_attr =
+              List.find
+                td.ptype_attributes
+                ~f:(fun (attr : Parsetree.attribute) ->
+                  is_at_cursor attr.attr_loc && is_deriving_attr attr)
+            in
+            match deriving_attr with
+            | Some attr -> result := Some (Ppx_sg_attr (item, attr))
+            | None -> Ast_iterator.default_iterator.type_declaration self td)
         tds
     | Psig_open desc when is_at_cursor desc.popen_expr.loc ->
       (* [open X] is not captured by [module_expr] since it uses a different
@@ -213,21 +223,27 @@ let hover_at_cursor parsetree (`Logical (cursor_line, cursor_col)) =
     | Psig_module desc when is_at_cursor desc.pmd_name.loc ->
       result := Some Type_enclosing
     | Psig_modtype mtd -> (
-      let deriving_attr =
-        List.find mtd.pmtd_attributes ~f:(fun (attr : Parsetree.attribute) ->
-            is_at_cursor attr.attr_loc && is_deriving_attr attr)
-      in
-      match deriving_attr with
-      | Some attr -> result := Some (Ppx_sg_attr (item, attr))
-      | None -> Ast_iterator.default_iterator.module_type_declaration self mtd)
+      if is_at_cursor mtd.pmtd_name.loc then result := Some Type_enclosing
+      else
+        let deriving_attr =
+          List.find mtd.pmtd_attributes ~f:(fun (attr : Parsetree.attribute) ->
+              is_at_cursor attr.attr_loc && is_deriving_attr attr)
+        in
+        match deriving_attr with
+        | Some attr -> result := Some (Ppx_sg_attr (item, attr))
+        | None -> Ast_iterator.default_iterator.module_type_declaration self mtd
+      )
     | Psig_exception tc -> (
-      let deriving_attr =
-        List.find tc.ptyexn_attributes ~f:(fun (attr : Parsetree.attribute) ->
-            is_at_cursor attr.attr_loc && is_deriving_attr attr)
-      in
-      match deriving_attr with
-      | Some attr -> result := Some (Ppx_sg_attr (item, attr))
-      | None -> Ast_iterator.default_iterator.type_exception self tc)
+      if is_at_cursor tc.ptyexn_constructor.pext_name.loc then
+        result := Some Type_enclosing
+      else
+        let deriving_attr =
+          List.find tc.ptyexn_attributes ~f:(fun (attr : Parsetree.attribute) ->
+              is_at_cursor attr.attr_loc && is_deriving_attr attr)
+        in
+        match deriving_attr with
+        | Some attr -> result := Some (Ppx_sg_attr (item, attr))
+        | None -> Ast_iterator.default_iterator.type_exception self tc)
     | Psig_typext tex -> (
       let deriving_attr =
         List.find tex.ptyext_attributes ~f:(fun (attr : Parsetree.attribute) ->
