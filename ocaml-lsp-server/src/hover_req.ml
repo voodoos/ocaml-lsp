@@ -328,7 +328,7 @@ let type_enclosing_hover ~(server : State.t Server.t) ~(doc : Document.t)
       state.hover_extended.history <- Some (uri, position, v);
       v
   in
-  let* type_enclosingosing =
+  let* type_enclosing =
     Document.Merlin.type_enclosing
       ~name:"hover-enclosing"
       merlin
@@ -336,7 +336,7 @@ let type_enclosing_hover ~(server : State.t Server.t) ~(doc : Document.t)
       verbosity
       ~with_syntax_doc
   in
-  match type_enclosingosing with
+  match type_enclosing with
   | None -> Fiber.return None
   | Some { Document.Merlin.loc; typ; doc = documentation; syntax_doc } ->
     let syntax = Document.syntax doc in
@@ -404,13 +404,11 @@ let handle server { HoverParams.textDocument = { uri }; position; _ } mode =
       match Document.kind doc with
       | `Other -> Fiber.return None
       | `Merlin merlin -> (
-        let* parsetree, _pipeline =
+        let* parsetree =
           Document.Merlin.with_pipeline_exn
             ~name:"hover"
             (Document.merlin_exn doc)
-            (fun pipeline ->
-              let parsetree = Mpipeline.reader_parsetree pipeline in
-              (parsetree, pipeline))
+            (fun pipeline -> Mpipeline.reader_parsetree pipeline)
         in
         match hover_at_cursor parsetree (Position.logical position) with
         | None -> Fiber.return None
