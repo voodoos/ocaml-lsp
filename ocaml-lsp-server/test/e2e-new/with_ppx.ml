@@ -71,15 +71,17 @@ let%expect_test "with-ppx" =
   print_endline output;
   [%expect
     {xxx|
-    Received 0 diagnostics
-    {
-      "contents": {
-        "value": "(* ppx expect expansion *)\nExpect_test_collector.Current_file.unset ()",
-        "language": "ocaml"
-      },
-      "range": {
-        "end": { "character": 16, "line": 2 },
-        "start": { "character": 4, "line": 2 }
+      Received 0 diagnostics
+      {
+        "contents": {
+          "value": "(* ppx expect expansion *)\nExpect_test_collector.Current_file.unset ()",
+          "language": "ocaml"
+        },
+        "range": {
+          "end": { "character": 16, "line": 2 },
+          "start": { "character": 2, "line": 2 }
+        }
       }
-    }
+
+
     |xxx}]
