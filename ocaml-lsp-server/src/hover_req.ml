@@ -6,6 +6,12 @@ type mode =
   | Extended_fixed of int
   | Extended_variable
 
+type kind =
+  | Ppx_expr of Parsetree.expression
+  | Ppx_sg_attr of Parsetree.signature_item
+  | Ppx_str_attr of Parsetree.structure_item
+  | Type_encl
+
 (* possibly overwrite the default mode using an environment variable *)
 let environment_mode =
   match Env_vars._IS_HOVER_EXTENDED () with
@@ -32,7 +38,7 @@ let hover_at_cursor parsetree (`Logical (cursor_line, cursor_col)) =
     (if is_at_cursor pattern.ppat_loc then
        match pattern.ppat_desc with
        | Ppat_any | Ppat_constant _ | Ppat_variant _ | Ppat_unpack _ ->
-         result := Some `Type_enclosing
+         result := Some Type_encl
        | Ppat_record (fields, Open) ->
          let end_of_last_field =
            match List.last fields with
@@ -40,13 +46,13 @@ let hover_at_cursor parsetree (`Logical (cursor_line, cursor_col)) =
            | None -> pattern.ppat_loc.loc_start
          in
          if is_at_cursor { pattern.ppat_loc with loc_start = end_of_last_field }
-         then result := Some `Type_enclosing
+         then result := Some Type_encl
        | Ppat_construct ({ loc; _ }, _)
        | Ppat_var { loc; _ }
        | Ppat_alias (_, { loc; _ })
        | Ppat_type { loc; _ }
        | Ppat_open ({ loc; _ }, _) ->
-         if is_at_cursor loc then result := Some `Type_enclosing
+         if is_at_cursor loc then result := Some Type_encl
        | _ -> ());
     Ast_iterator.default_iterator.pat self pattern
   in
@@ -55,11 +61,11 @@ let hover_at_cursor parsetree (`Logical (cursor_line, cursor_col)) =
     if is_at_cursor expr.pexp_loc then
       match expr.pexp_desc with
       | Pexp_constant _ | Pexp_variant _ | Pexp_pack _ ->
-        result := Some `Type_enclosing
+        result := Some Type_encl
       | Pexp_ident { loc; _ }
       | Pexp_construct ({ loc; _ }, _)
       | Pexp_field (_, { loc; _ }) ->
-        if is_at_cursor loc then result := Some `Type_enclosing
+        if is_at_cursor loc then result := Some Type_encl
         else Ast_iterator.default_iterator.expr self expr
       | Pexp_record (fields, _) ->
         (* On a record, each field may be hovered. *)
@@ -67,7 +73,7 @@ let hover_at_cursor parsetree (`Logical (cursor_line, cursor_col)) =
           List.exists fields ~f:(fun (({ loc; _ } : _ Asttypes.loc), _) ->
               is_at_cursor loc)
         in
-        if is_on_field then result := Some `Type_enclosing
+        if is_on_field then result := Some Type_encl
         else Ast_iterator.default_iterator.expr self expr
       | Pexp_function _ | Pexp_lazy _ ->
         (* Anonymous function expressions can be hovered on the keyword [fun] or
@@ -88,38 +94,21 @@ let hover_at_cursor parsetree (`Logical (cursor_line, cursor_col)) =
             ; loc_ghost = false
             }
         in
-        if is_at_keyword then result := Some `Type_enclosing
+        if is_at_keyword then result := Some Type_encl
         else Ast_iterator.default_iterator.expr self expr
       | Pexp_extension (ppx, _) when is_at_cursor ppx.loc ->
-        result := Some (`Ppx_expr (expr, ppx))
+        result := Some (Ppx_expr expr)
       | _ -> Ast_iterator.default_iterator.expr self expr
   in
   (* Hover a value declaration in a signature *)
   let value_description (self : Ast_iterator.iterator)
       (desc : Parsetree.value_description) =
-    if is_at_cursor desc.pval_name.loc then result := Some `Type_enclosing;
+    if is_at_cursor desc.pval_name.loc then result := Some Type_encl;
     Ast_iterator.default_iterator.value_description self desc
   in
   (* Hover a type *)
   let typ (_ : Ast_iterator.iterator) (typ : Parsetree.core_type) =
-    if is_at_cursor typ.ptyp_loc then result := Some `Type_enclosing
-  in
-  (* Hover a type declaration *)
-  let type_declaration (self : Ast_iterator.iterator)
-      (decl : Parsetree.type_declaration) =
-    if is_at_cursor decl.ptype_name.loc then result := Some `Type_enclosing
-    else if is_at_cursor decl.ptype_loc then
-      let attribute_at_cursor =
-        List.find decl.ptype_attributes ~f:(fun attr ->
-            is_at_cursor attr.attr_loc)
-      in
-      match attribute_at_cursor with
-      | Some attr ->
-        (* Produce a hover for the attribute, if it's name is hovered, otherwise
-           bail. *)
-        if is_at_cursor attr.attr_name.loc then
-          result := Some (`Ppx_typedef_attr (decl, attr))
-      | None -> Ast_iterator.default_iterator.type_declaration self decl
+    if is_at_cursor typ.ptyp_loc then result := Some Type_encl
   in
   (* Hover a module identifier *)
   let module_expr (self : Ast_iterator.iterator) (expr : Parsetree.module_expr)
@@ -127,7 +116,7 @@ let hover_at_cursor parsetree (`Logical (cursor_line, cursor_col)) =
     (if is_at_cursor expr.pmod_loc then
        match expr.pmod_desc with
        | Pmod_ident { loc; _ } ->
-         if is_at_cursor loc then result := Some `Type_enclosing
+         if is_at_cursor loc then result := Some Type_encl
        | Pmod_structure _ ->
          let is_at_keyword =
            let keyword_len = 6 (* struct *) in
@@ -138,7 +127,7 @@ let hover_at_cursor parsetree (`Logical (cursor_line, cursor_col)) =
              ; loc_ghost = false
              }
          in
-         if is_at_keyword then result := Some `Type_enclosing
+         if is_at_keyword then result := Some Type_encl
        | _ -> ());
     Ast_iterator.default_iterator.module_expr self expr
   in
@@ -148,7 +137,7 @@ let hover_at_cursor parsetree (`Logical (cursor_line, cursor_col)) =
     (if is_at_cursor mtyp.pmty_loc then
        match mtyp.pmty_desc with
        | Pmty_ident { loc; _ } ->
-         if is_at_cursor loc then result := Some `Type_enclosing
+         if is_at_cursor loc then result := Some Type_encl
        | _ -> ());
     Ast_iterator.default_iterator.module_type self mtyp
   in
@@ -156,20 +145,80 @@ let hover_at_cursor parsetree (`Logical (cursor_line, cursor_col)) =
   let structure_item (self : Ast_iterator.iterator)
       (item : Parsetree.structure_item) =
     match item.pstr_desc with
+    | Pstr_type (_, tds) ->
+      List.iter
+        ~f:(fun (td : Parsetree.type_declaration) ->
+          if
+            List.exists
+              td.ptype_attributes
+              ~f:(fun (attr : Parsetree.attribute) ->
+                is_at_cursor attr.attr_loc)
+          then result := Some (Ppx_str_attr item)
+          else result := Some Type_encl)
+        tds
     | Pstr_module desc when is_at_cursor desc.pmb_name.loc ->
-      result := Some `Type_enclosing
+      result := Some Type_encl
+    | Pstr_modtype mtd ->
+      if
+        List.exists mtd.pmtd_attributes ~f:(fun (attr : Parsetree.attribute) ->
+            is_at_cursor attr.attr_loc)
+      then result := Some (Ppx_str_attr item)
+      else result := Some Type_encl
+    | Pstr_exception tc ->
+      if
+        List.exists tc.ptyexn_attributes ~f:(fun (attr : Parsetree.attribute) ->
+            is_at_cursor attr.attr_loc)
+      then result := Some (Ppx_str_attr item)
+      else result := Some Type_encl
+    | Pstr_typext tex ->
+      if
+        List.exists
+          tex.ptyext_attributes
+          ~f:(fun (attr : Parsetree.attribute) -> is_at_cursor attr.attr_loc)
+      then result := Some (Ppx_str_attr item)
+      else result := Some Type_encl
     | _ -> Ast_iterator.default_iterator.structure_item self item
   in
   (* Hover signature items *)
   let signature_item (self : Ast_iterator.iterator)
       (item : Parsetree.signature_item) =
     match item.psig_desc with
+    | Psig_type (_, tds) ->
+      List.iter
+        ~f:(fun (td : Parsetree.type_declaration) ->
+          if
+            List.exists
+              td.ptype_attributes
+              ~f:(fun (attr : Parsetree.attribute) ->
+                is_at_cursor attr.attr_loc)
+          then result := Some (Ppx_sg_attr item)
+          else result := Some Type_encl)
+        tds
     | Psig_open desc when is_at_cursor desc.popen_expr.loc ->
       (* [open X] is not captured by [module_expr] since it uses a different
          type in the AST. *)
-      result := Some `Type_enclosing
+      result := Some Type_encl
     | Psig_module desc when is_at_cursor desc.pmd_name.loc ->
-      result := Some `Type_enclosing
+      result := Some Type_encl
+    | Psig_modtype mtd ->
+      if
+        List.exists mtd.pmtd_attributes ~f:(fun (attr : Parsetree.attribute) ->
+            is_at_cursor attr.attr_loc)
+      then result := Some (Ppx_sg_attr item)
+      else result := Some Type_encl
+    | Psig_exception tc ->
+      if
+        List.exists tc.ptyexn_attributes ~f:(fun (attr : Parsetree.attribute) ->
+            is_at_cursor attr.attr_loc)
+      then result := Some (Ppx_sg_attr item)
+      else result := Some Type_encl
+    | Psig_typext tex ->
+      if
+        List.exists
+          tex.ptyext_attributes
+          ~f:(fun (attr : Parsetree.attribute) -> is_at_cursor attr.attr_loc)
+      then result := Some (Ppx_sg_attr item)
+      else result := Some Type_encl
     | _ -> Ast_iterator.default_iterator.signature_item self item
   in
   let iterator =
@@ -177,7 +226,6 @@ let hover_at_cursor parsetree (`Logical (cursor_line, cursor_col)) =
       pat
     ; expr
     ; typ
-    ; type_declaration
     ; value_description
     ; module_expr
     ; module_type
@@ -336,7 +384,7 @@ let handle server { HoverParams.textDocument = { uri }; position; _ } mode =
         in
         match hover_at_cursor parsetree (Position.logical position) with
         | None -> Fiber.return None
-        | Some `Type_enclosing ->
+        | Some Type_encl ->
           let with_syntax_doc =
             match state.configuration.data.syntax_documentation with
             | Some { enable = true } -> true
@@ -350,7 +398,7 @@ let handle server { HoverParams.textDocument = { uri }; position; _ } mode =
             ~uri
             ~position
             ~with_syntax_doc
-        | Some (`Ppx_expr _ | `Ppx_typedef_attr _) -> (
+        | Some (Ppx_expr _ | Ppx_sg_attr _ | Ppx_str_attr _) -> (
           match
             Document.Merlin.ppx_expand pipeline (Position.logical position)
           with
