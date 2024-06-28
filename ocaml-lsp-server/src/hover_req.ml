@@ -461,8 +461,8 @@ let handle server { HoverParams.textDocument = { uri }; position; _ } mode =
           create_ppx_hover_content
             ~ppx:attr.txt
             ~expansion:ppx_source.code
-            ~attr_end:attr.loc.loc_end
-            ~attr_start:attr.loc.loc_start
+            ~attr_end:ppx.pexp_loc.loc_end
+            ~attr_start:ppx.pexp_loc.loc_start
         | Some (Ppx_sg_attr (ppx, attr)) ->
           let* ppxed_parsetree =
             Document.Merlin.with_pipeline_exn
