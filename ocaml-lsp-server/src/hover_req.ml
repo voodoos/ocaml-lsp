@@ -262,7 +262,7 @@ let print_dividers sections = String.concat ~sep:"\n---\n" sections
 let format_as_code_block ~highlighter strings =
   sprintf "```%s\n%s\n```" highlighter (String.concat ~sep:" " strings)
 
-let format_type_enclosingosing ~syntax ~markdown ~typ ~doc
+let format_type_enclosing ~syntax ~markdown ~typ ~doc
     ~(syntax_doc : Query_protocol.syntax_doc_result option) =
   (* TODO for vscode, we should just use the language id. But that will not work
      for all editors *)
@@ -370,7 +370,7 @@ let type_enclosing_hover ~(server : State.t Server.t) ~(doc : Document.t)
           client_capabilities
           ~field:(fun td -> Option.map td.hover ~f:(fun h -> h.contentFormat))
       in
-      format_type_enclosingosing
+      format_type_enclosing
         ~syntax
         ~markdown
         ~typ
