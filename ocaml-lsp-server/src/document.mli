@@ -81,7 +81,7 @@ module Merlin : sig
     }
 
   val ppx_expand :
-    Mpipeline.t -> Msource.position -> Query_protocol.ppx_expand_result option
+    Mpipeline.t -> Msource.position -> Query_protocol.ppxed_source option
 
   val type_enclosing :
        ?name:string

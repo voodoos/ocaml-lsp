@@ -6,7 +6,7 @@ type mode =
   | Extended_fixed of int
   | Extended_variable
 
-type kind =
+type hover_context =
   | Ppx_expr of Parsetree.expression
   | Ppx_sg_attr of Parsetree.signature_item
   | Ppx_str_attr of Parsetree.structure_item
@@ -280,8 +280,7 @@ let format_type_enclosing ~syntax ~markdown ~typ ~doc
        { MarkupContent.value; kind = MarkupKind.PlainText })
 
 let format_ppx_expansion ~expansion =
-  let value = sprintf "%s" expansion in
-  `MarkedString { Lsp.Types.MarkedString.value; language = Some "ocaml" }
+  `MarkedString { Lsp.Types.MarkedString.value = expansion; language = Some "ocaml" }
 
 let type_enclosing_hover ~(server : State.t Server.t) ~(doc : Document.t)
     ~with_syntax_doc ~merlin ~mode ~uri ~position =
