@@ -1100,21 +1100,10 @@ let%expect_test "completion for `in` keyword - no prefix" =
 let foo param1 =
   let bar = param1 |ocaml} in
   let position = Position.create ~line:2 ~character:19 in
-  print_completions ~limit:3 source position;
+  print_completions ~limit:2 source position;
   [%expect
     {|
     Completions:
-    {
-      "kind": 14,
-      "label": "in",
-      "textEdit": {
-        "newText": "in",
-        "range": {
-          "end": { "character": 19, "line": 2 },
-          "start": { "character": 19, "line": 2 }
-        }
-      }
-    }
     {
       "detail": "'a -> 'b",
       "kind": 12,

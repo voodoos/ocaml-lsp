@@ -175,7 +175,7 @@ module Complete_by_prefix = struct
 
   let complete_keywords completion_position prefix =
     match prefix with
-    | "" | "i" | "in" ->
+    | "i" | "in" ->
       let ci_for_in =
         CompletionItem.create
           ~label:"in"
