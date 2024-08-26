@@ -3,6 +3,7 @@
 ## Fixes
 
 - Fix fd leak in running external processes for preprocessing (#1349)
+- Stop suggesting the `in` keyword when the prefix is empty (#1364)
 
 # 1.19.0
 
