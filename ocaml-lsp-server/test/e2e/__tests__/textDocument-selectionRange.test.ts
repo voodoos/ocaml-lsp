@@ -406,5 +406,60 @@ Array [
 ]
 `);
   });
+
+  it("handles GADTs with phantom types", async () => {
+    openDocument(outdent`
+      type _ typ =
+        | TInt : int typ
+        | TBool : bool typ
+      type packed = Pack : 'a typ * 'a -> packed
+      let print : type a. a typ -> a -> string = function
+        | TInt -> string_of_int
+        | TBool -> string_of_bool
+      let show (Pack (t, v)) = print t v
+    `);
+
+    let result = await selectionRange([Types.Position.create(7, 8)]);
+    expect(result).toMatchInlineSnapshot(`
+Array [
+  Object {
+    "parent": Object {
+      "parent": Object {
+        "range": Object {
+          "end": Object {
+            "character": 34,
+            "line": 7,
+          },
+          "start": Object {
+            "character": 0,
+            "line": 0,
+          },
+        },
+      },
+      "range": Object {
+        "end": Object {
+          "character": 34,
+          "line": 7,
+        },
+        "start": Object {
+          "character": 0,
+          "line": 7,
+        },
+      },
+    },
+    "range": Object {
+      "end": Object {
+        "character": 8,
+        "line": 7,
+      },
+      "start": Object {
+        "character": 4,
+        "line": 7,
+      },
+    },
+  },
+]
+`);
+  });
 });
 
