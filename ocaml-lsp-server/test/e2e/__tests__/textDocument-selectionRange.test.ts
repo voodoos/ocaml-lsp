@@ -124,4 +124,287 @@ Array [
 ]
 `);
   });
+  it("returns a selection range for deeply nested modules", async () => {
+    openDocument(outdent`
+      module Math = struct
+        let add x y = x + y
+        let multiply a b = a * b
+        module Nested = struct
+          let square z = multiply z z
+        end
+      end
+    `);
+
+    let result = await selectionRange([Types.Position.create(3, 20)]);
+    expect(result).toMatchInlineSnapshot(`
+Array [
+  Object {
+    "parent": Object {
+      "parent": Object {
+        "parent": Object {
+          "parent": Object {
+            "range": Object {
+              "end": Object {
+                "character": 3,
+                "line": 6,
+              },
+              "start": Object {
+                "character": 0,
+                "line": 0,
+              },
+            },
+          },
+          "range": Object {
+            "end": Object {
+              "character": 3,
+              "line": 6,
+            },
+            "start": Object {
+              "character": 14,
+              "line": 0,
+            },
+          },
+        },
+        "range": Object {
+          "end": Object {
+            "character": 5,
+            "line": 5,
+          },
+          "start": Object {
+            "character": 2,
+            "line": 1,
+          },
+        },
+      },
+      "range": Object {
+        "end": Object {
+          "character": 5,
+          "line": 5,
+        },
+        "start": Object {
+          "character": 2,
+          "line": 3,
+        },
+      },
+    },
+    "range": Object {
+      "end": Object {
+        "character": 5,
+        "line": 5,
+      },
+      "start": Object {
+        "character": 18,
+        "line": 3,
+      },
+    },
+  },
+]
+`);
+  });
+  it("returns a selection range for module types", async () => {
+    openDocument(outdent`
+      module type MathOps = sig
+        val add : int -> int -> int
+        val subtract : int -> int -> int
+      end
+
+      module Math : MathOps = struct
+        let add x y = x + y
+        let subtract x y = x - y
+      end
+    `);
+
+    let result = await selectionRange([Types.Position.create(0, 15)]);
+    expect(result).toMatchInlineSnapshot(`
+Array [
+  Object {
+    "parent": Object {
+      "parent": Object {
+        "range": Object {
+          "end": Object {
+            "character": 3,
+            "line": 8,
+          },
+          "start": Object {
+            "character": 0,
+            "line": 0,
+          },
+        },
+      },
+      "range": Object {
+        "end": Object {
+          "character": 3,
+          "line": 3,
+        },
+        "start": Object {
+          "character": 0,
+          "line": 0,
+        },
+      },
+    },
+    "range": Object {
+      "end": Object {
+        "character": 19,
+        "line": 0,
+      },
+      "start": Object {
+        "character": 12,
+        "line": 0,
+      },
+    },
+  },
+]
+`);
+  });
+
+  it("returns a selection range for pattern matching", async () => {
+    openDocument(outdent`
+      let describe_shape = function
+        | Circle r -> Printf.sprintf "Circle with radius %f" r
+        | Rectangle (w, h) -> Printf.sprintf "Rectangle %f x %f" w h
+        | _ -> "Unknown shape"
+    `);
+
+    let result = await selectionRange([Types.Position.create(1, 10)]);
+    expect(result).toMatchInlineSnapshot(`
+Array [
+  Object {
+    "parent": Object {
+      "range": Object {
+        "end": Object {
+          "character": 24,
+          "line": 3,
+        },
+        "start": Object {
+          "character": 0,
+          "line": 0,
+        },
+      },
+    },
+    "range": Object {
+      "end": Object {
+        "character": 24,
+        "line": 3,
+      },
+      "start": Object {
+        "character": 21,
+        "line": 0,
+      },
+    },
+  },
+]
+`);
+  });
+
+  it("returns a selection range for nested let bindings", async () => {
+    openDocument(outdent`
+      let rec factorial n =
+        let rec aux acc n =
+          if n <= 1 then acc else aux (acc * n) (n - 1)
+        in aux 1 n
+    `);
+
+    let result = await selectionRange([Types.Position.create(2, 10)]);
+    expect(result).toMatchInlineSnapshot(`
+Array [
+  Object {
+    "parent": Object {
+      "parent": Object {
+        "parent": Object {
+          "parent": Object {
+            "parent": Object {
+              "parent": Object {
+                "parent": Object {
+                  "range": Object {
+                    "end": Object {
+                      "character": 12,
+                      "line": 3,
+                    },
+                    "start": Object {
+                      "character": 0,
+                      "line": 0,
+                    },
+                  },
+                },
+                "range": Object {
+                  "end": Object {
+                    "character": 12,
+                    "line": 3,
+                  },
+                  "start": Object {
+                    "character": 18,
+                    "line": 0,
+                  },
+                },
+              },
+              "range": Object {
+                "end": Object {
+                  "character": 12,
+                  "line": 3,
+                },
+                "start": Object {
+                  "character": 2,
+                  "line": 1,
+                },
+              },
+            },
+            "range": Object {
+              "end": Object {
+                "character": 49,
+                "line": 2,
+              },
+              "start": Object {
+                "character": 2,
+                "line": 1,
+              },
+            },
+          },
+          "range": Object {
+            "end": Object {
+              "character": 49,
+              "line": 2,
+            },
+            "start": Object {
+              "character": 14,
+              "line": 1,
+            },
+          },
+        },
+        "range": Object {
+          "end": Object {
+            "character": 49,
+            "line": 2,
+          },
+          "start": Object {
+            "character": 4,
+            "line": 2,
+          },
+        },
+      },
+      "range": Object {
+        "end": Object {
+          "character": 13,
+          "line": 2,
+        },
+        "start": Object {
+          "character": 7,
+          "line": 2,
+        },
+      },
+    },
+    "range": Object {
+      "end": Object {
+        "character": 11,
+        "line": 2,
+      },
+      "start": Object {
+        "character": 9,
+        "line": 2,
+      },
+    },
+  },
+]
+`);
+  });
 });
+
