@@ -132,6 +132,8 @@ include struct
     include Uri
 
     let to_dyn t = Dyn.string (to_string t)
+
+    module Map = Stdlib.Map.Make (Uri)
   end
 end
 
