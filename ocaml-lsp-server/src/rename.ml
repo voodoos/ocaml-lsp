@@ -8,16 +8,22 @@ let rename (state : State.t) { RenameParams.textDocument = { uri }; position; ne
   | `Other -> Fiber.return (WorkspaceEdit.create ())
   | `Merlin merlin ->
     let command =
-      Query_protocol.Occurrences (`Ident_at (Position.logical position), `Buffer)
+      Query_protocol.Occurrences (`Ident_at (Position.logical position), `Renaming)
     in
     let+ locs, _desync = Document.Merlin.dispatch_exn ~name:"rename" merlin command in
     let version = Document.version doc in
-    let source = Document.source doc in
+    (* let source = Document.source doc in *)
     let edits =
-      List.map locs ~f:(fun (loc : Warnings.loc) ->
+      List.fold_left locs ~init:Uri.Map.empty ~f:(fun acc (loc : Warnings.loc) ->
         let range = Range.of_loc loc in
-        let make_edit () = TextEdit.create ~range ~newText:newName in
-        match
+        let edit = TextEdit.create ~range ~newText:newName in
+        let uri =
+          match loc.loc_start.pos_fname with
+          | "" -> uri
+          | path -> Uri.of_path path
+        in
+        Uri.Map.add_to_list uri edit acc
+        (* match
           let occur_start_pos =
             Position.of_lexical_position loc.loc_start |> Option.value_exn
           in
@@ -39,7 +45,7 @@ let rename (state : State.t) { RenameParams.textDocument = { uri }; position; ne
                { range with start = occur_end_pos }
              in
              TextEdit.create ~range:empty_range_at_occur_end ~newText:(":" ^ newName)
-           | _ -> make_edit ()))
+           | _ ->  *))
     in
     let workspace_edits =
       let documentChanges =
@@ -53,15 +59,19 @@ let rename (state : State.t) { RenameParams.textDocument = { uri }; position; ne
       in
       if documentChanges
       then (
-        let textDocument =
-          OptionalVersionedTextDocumentIdentifier.create ~uri ~version ()
+        let documentChanges =
+          Uri.Map.to_list edits
+          |> List.map ~f:(fun (uri, edits) ->
+            let textDocument =
+              OptionalVersionedTextDocumentIdentifier.create ~uri ~version ()
+            in
+            let edits = List.map edits ~f:(fun e -> `TextEdit e) in
+            `TextDocumentEdit (TextDocumentEdit.create ~textDocument ~edits))
         in
-        let edits = List.map edits ~f:(fun e -> `TextEdit e) in
-        WorkspaceEdit.create
-          ~documentChanges:
-            [ `TextDocumentEdit (TextDocumentEdit.create ~textDocument ~edits) ]
-          ())
-      else WorkspaceEdit.create ~changes:[ uri, edits ] ()
+        WorkspaceEdit.create ~documentChanges ())
+      else (
+        let changes = Uri.Map.to_list edits in
+        WorkspaceEdit.create ~changes ())
     in
     workspace_edits
 ;;
