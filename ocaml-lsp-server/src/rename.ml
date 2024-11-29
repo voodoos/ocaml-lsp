@@ -12,7 +12,6 @@ let rename (state : State.t) { RenameParams.textDocument = { uri }; position; ne
     in
     let+ locs, _desync = Document.Merlin.dispatch_exn ~name:"rename" merlin command in
     let version = Document.version doc in
-    (* let source = Document.source doc in *)
     let edits =
       List.fold_left locs ~init:Uri.Map.empty ~f:(fun acc (loc : Warnings.loc) ->
         let range = Range.of_loc loc in
@@ -22,30 +21,37 @@ let rename (state : State.t) { RenameParams.textDocument = { uri }; position; ne
           | "" -> uri
           | path -> Uri.of_path path
         in
-        Uri.Map.add_to_list uri edit acc
-        (* match
-          let occur_start_pos =
-            Position.of_lexical_position loc.loc_start |> Option.value_exn
+        Uri.Map.add_to_list uri edit acc)
+    in
+    let edits =
+      Uri.Map.mapi
+        (fun doc_uri edits ->
+          let source_path = Uri.to_path doc_uri in
+          let source =
+            In_channel.with_open_text source_path In_channel.input_all |> Msource.make
           in
-          occur_start_pos
-        with
-        | { character = 0; _ } -> make_edit ()
-        | pos ->
-          let mpos = Position.logical pos in
-          let (`Offset index) = Msource.get_offset source mpos in
-          assert (index > 0)
-          (* [index = 0] if we pass [`Logical (1, 0)], but we handle the case
-             when [character = 0] in a separate matching branch *);
-          let source_txt = Msource.text source in
-          (match source_txt.[index - 1] with
-           | '~' (* the occurrence is a named argument *)
-           | '?' (* is an optional argument *) ->
-             let empty_range_at_occur_end =
-               let occur_end_pos = range.Range.end_ in
-               { range with start = occur_end_pos }
-             in
-             TextEdit.create ~range:empty_range_at_occur_end ~newText:(":" ^ newName)
-           | _ ->  *))
+          List.map edits ~f:(fun (edit : TextEdit.t) ->
+            let start_position = edit.range.start in
+            match start_position with
+            | { character = 0; _ } -> edit
+            | pos ->
+              let mpos = Position.logical pos in
+              let (`Offset index) = Msource.get_offset source mpos in
+              assert (index > 0)
+              (* [index = 0] if we pass [`Logical (1, 0)], but we handle the case
+                 when [character = 0] in a separate matching branch *);
+              let source_txt = Msource.text source in
+              (* TODO: handle record field puning *)
+              (match source_txt.[index - 1] with
+               | '~' (* the occurrence is a named argument *)
+               | '?' (* is an optional argument *) ->
+                 let empty_range_at_occur_end =
+                   let occur_end_pos = edit.range.end_ in
+                   { edit.range with start = occur_end_pos }
+                 in
+                 TextEdit.create ~range:empty_range_at_occur_end ~newText:(":" ^ newName)
+               | _ -> edit)))
+        edits
     in
     let workspace_edits =
       let documentChanges =
